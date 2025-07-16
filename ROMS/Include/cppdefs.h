@@ -515,7 +515,17 @@
 ** Red tide biological model OPTIONS:                                        **
 **                                                                           **
 ** RED_TIDE                if red tide biological model.                     **
-**                                                                           **
+** 
+** UMAINE CoSiNE biological model OPTIONS:                                   **
+** BIO_UMAINE15	     if UMAINE CoSiNE model                                **
+** BIOSED              use to turn on sediment biology for UMAINE CoSiNE15   **
+** CARBON              use to add carbon constituents                        **
+** TALK_NONCONSERV     use if nonconservative computation of alkalinity      **
+** OXYGEN              use to add oxygen dynamics                            **
+** PHYTO_RESP          use to add phytoplankton respiration                  **
+** OPTICS_OP1          use to compute kdPAR using multi-constituent model    **
+** READ_ZENITH         if OPTICS_OP1, use to input solar zenith angle        **
+**
 ** Sediment transport model OPTIONS:                                         **
 **                                                                           **
 ** SEDIMENT                to activate sediment transport model              **

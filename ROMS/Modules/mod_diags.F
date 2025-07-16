@@ -59,7 +59,7 @@
           real(r8), pointer :: avgzeta(:,:)
 
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
           real(r8), pointer :: DiaBio2d(:,:,:)
           real(r8), pointer :: DiaBio3d(:,:,:,:)
 #  elif defined ECOSIM
@@ -139,7 +139,7 @@
       Dmem(ng)=Dmem(ng)+size2d
 
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
       IF (NDbio2d.gt.0) THEN
         allocate ( DIAGS(ng) % DiaBio2d(LBi:UBi,LBj:UBj,NDbio2d) )
         Dmem(ng)=Dmem(ng)+REAL(NDbio2d,r8)*size2d
@@ -433,7 +433,7 @@
         END DO
 
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
         IF (NDbio2d.gt.0) THEN
           DO idiag=1,NDbio2d
             DO i=Imin,Imax

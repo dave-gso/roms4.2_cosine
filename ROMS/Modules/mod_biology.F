@@ -26,6 +26,7 @@
 **         npzd_iron.h        NPZD_IRON                               **
 **         npzd_Powell.h      NPZD_POWELL                             **
 **         red_tide.h         RED_TIDE                                **
+**         bio_UMAINE15.h     CoSiNE                                  **
 **                                                                    **
 **   (2) Internal model parameters declaration:                       **
 **                                                                    **
@@ -38,6 +39,7 @@
 **         npzd_iron_mod.h                                            **
 **         npzd_Powell_mod.h                                          **
 **         red_tide_mod.h                                             **
+**         bio_UMAINE15_mod.h                                         **
 **                                                                    **
 **   (3) Model parameters standard input script:                      **
 **                                                                    **
@@ -62,6 +64,7 @@
 **         npzd_iron_inp.h                                            **
 **         npzd_Powell_inp.h                                          **
 **         red_tide_inp.h                                             **
+**         bio_UMAINE15_inp.h                                         **
 **                                                                    **
 **   (5) Code to assign indices to model variables during the         **
 **       reading of metadata information from "varinfo.yaml":         **
@@ -75,6 +78,7 @@
 **         npzd_iron_var.h                                            **
 **         npzd_Powell_var.h                                          **
 **         red_tide_var.h                                             **
+**         bio_UMAINE15_var.h                                         **
 **                                                                    **
 **   (6) Code to define input model parameters in all output          **
 **       NetCDF files:                                                **
@@ -88,6 +92,7 @@
 **         npzd_iron_def.h                                            **
 **         npzd_Powell_def.h                                          **
 **         red_tide_def.h                                             **
+**         bio_UMAINE15_def.h                                         **
 **                                                                    **
 **   (7) Code to write out input model parameters in all output       **
 **       NetCDF files:                                                **
@@ -101,6 +106,7 @@
 **         npzd_iron_wrt.h                                            **
 **         npzd_Powell_wrt.h                                          **
 **         red_tide_wrt.h                                             **
+**         biio_UMAINE15_wrt.h                                        **
 **                                                                    **
 **                                                                    **
 ** Note that all the *.h files are located in ROMS/Nonlinear/Biology  **
@@ -130,6 +136,8 @@
 #  include <npzd_Powell_mod.h>
 # elif defined RED_TIDE
 #  include <red_tide_mod.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_mod.h>
 # else
       MODULE mod_biology
       END MODULE mod_biology

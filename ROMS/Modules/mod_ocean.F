@@ -35,7 +35,16 @@
 #ifdef BIOLOGY
 !                                                                      !
 !  Biology Variables.                                                  !
-!                                                                      !
+! 
+# if (defined BIO_UMAINE15 && defined CARBON)
+!  pH           Surface concentration of hydrogen ions.                !
+!  fgCO2        Co2 downward surface flux
+!  pCO2s        Surface pCO2 [ppmv]
+# endif 
+#if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+!  attenuation of light
+!   kdpar       attenuation coefficient for PAR (m^-1)
+#endif                                                                     !
 # if (defined BIO_FENNEL && defined CARBON) || defined ECB
 !  pH           Surface concentration of hydrogen ions.                !
 # endif
@@ -129,8 +138,16 @@
           real(r8), pointer :: uwave(:,:)
           real(r8), pointer :: vwave(:,:)
 # endif
-# if (defined BIO_FENNEL && defined CARBON) || defined ECB
+# if ( (defined BIO_FENNEL || defined BIO_UMAINE15) && \
+        defined CARBON) || defined ECB
           real(r8), pointer :: pH(:,:)
+# endif
+# if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+          real(r8), pointer :: kdpar(:,:,:)
+# endif
+# if (defined BIO_UMAINE15 && defined CARBON)
+          real(r8), pointer :: fgCO2(:,:)
+          real(r8), pointer :: pCO2s(:,:)
 # endif
 # ifdef RED_TIDE
           real(r8), pointer :: CystIni(:,:)
@@ -506,10 +523,18 @@
       Dmem(ng)=Dmem(ng)+size2d
 # endif
 
-# if (defined BIO_FENNEL && defined CARBON) || defined ECB
+# if ((defined BIO_FENNEL || defined BIO_UMAINE15) && \
+       defined CARBON) || defined ECB
 !
       allocate ( OCEAN(ng) % pH(LBi:UBi,LBj:UBj) )
       Dmem(ng)=Dmem(ng)+size2d
+# endif
+# if (defined BIO_UMAINE15 && defined CARBON)
+      allocate ( OCEAN(ng) % fgCO2(LBi:UBi,LBj:UBj) )
+      allocate ( OCEAN(ng) % pCO2s(LBi:UBi,LBj:UBj) )
+# endif
+# if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+      allocate ( OCEAN(ng) % kdpar(LBi:UBi,LBj:UBj,N(ng)) )
 # endif
 
 # ifdef RED_TIDE
@@ -1109,11 +1134,21 @@
      &                 __LINE__, 'OCEAN(ng)%wstvel')) RETURN
 #  endif
 
-#  if (defined BIO_FENNEL && defined CARBON) || defined ECB
+#  if ((defined BIO_FENNEL || defined BIO_UMAINE15) && \
+         defined CARBON) || defined ECB
       IF (.not.destroy(ng, OCEAN(ng)%pH, MyFile,                        &
      &                 __LINE__, 'OCEAN(ng)%pH')) RETURN
 #  endif
-
+#  if (defined BIO_UMAINE15 && defined CARBON)
+      IF (.not.destroy(ng, OCEAN(ng)%fgCO2, MyFile,                        &
+     &                 __LINE__, 'OCEAN(ng)%fgCO2')) RETURN
+      IF (.not.destroy(ng, OCEAN(ng)%pCO2s, MyFile,                        &
+     &                 __LINE__, 'OCEAN(ng)%pCO2s')) RETURN
+#  endif
+#  if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+      IF (.not.destroy(ng, OCEAN(ng)%kdpar, MyFile,                        &
+     &                 __LINE__, 'OCEAN(ng)%kdpar')) RETURN
+#  endif
 #  ifdef RED_TIDE
       IF (.not.destroy(ng, OCEAN(ng)%CystIni, MyFile,                   &
      &                 __LINE__, 'OCEAN(ng)%CystIni')) RETURN
@@ -1586,7 +1621,9 @@
 #endif
 
       real(r8), parameter :: IniVal = 0.0_r8
-
+#if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+      real(r8), parameter :: kdIniVal = 0.05_r8
+#endif
 #include "set_bounds.h"
 !
 !  Set array initialization range.
@@ -1661,10 +1698,15 @@
             OCEAN(ng) % uwave(i,j) = IniVal
             OCEAN(ng) % vwave(i,j) = IniVal
 #endif
-#if (defined BIO_FENNEL && defined CARBON && defined SOLVE3D) ||\
+#if ((defined BIO_FENNEL || defined BIO_UMAINE15) && \
+    defined CARBON && defined SOLVE3D) ||\
     (defined ECB && defined SOLVE3D)
             OCEAN(ng) % pH(i,j) = 8.0_r8
 #endif
+# if (defined BIO_UMAINE15 && defined CARBON)
+            OCEAN(ng) % fgCO2(i,j) = 0.0_r8
+            OCEAN(ng) % pCO2s(i,j) = 380_r8
+# endif
 #ifdef RED_TIDE
             OCEAN(ng) % CystIni(i,j) = IniVal
 #endif
@@ -1689,6 +1731,9 @@
               OCEAN(ng) % DIN_obs(i,j,k) = IniVal
               OCEAN(ng) % DIN_obsG(i,j,k,1) = IniVal
               OCEAN(ng) % DIN_obsG(i,j,k,2) = IniVal
+# endif
+# if (defined BIO_UMAINE15 && defined OPTICS_OP1)
+              OCEAN(ng) % kdpar(i,j,k) = kdIniVal
 # endif
 # ifdef HYPOXIA_SRM
               OCEAN(ng) % respiration(i,j,k) = IniVal

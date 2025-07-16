@@ -453,6 +453,11 @@
       integer  :: id2dRV        ! 2D relative vorticity
       integer  :: id3dPV        ! 3D potential vorticity
       integer  :: id3dRV        ! 3D relative vorticity
+! CoSiNE:      
+      integer  :: idzang        ! solar zenith angle
+      integer  :: idkdPAR       ! light attenuation coefficient
+      integer  :: idfgCO2       ! CO2 surface flux
+      integer  :: idpCO2s       ! Surface pCO2
 !
 !  Last used variable ID counter.
 !
@@ -1779,6 +1784,10 @@
             idCfra=varid
           CASE ('idSrad')
             idSrad=varid
+# if defined BIO_UMAINE15 && defined READ_ZENITH
+            CASE ('idzang')
+              idzang=varid
+# endif
           CASE ('idLdwn')
             idLdwn=varid
           CASE ('idLrad')
@@ -2449,6 +2458,8 @@
 #  include <npzd_iron_var.h>
 # elif defined RED_TIDE
 #  include <red_tide_var.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_var.h>
 # endif
 #endif
 

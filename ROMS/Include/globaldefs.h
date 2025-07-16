@@ -806,7 +806,8 @@
     defined NPZD_FRANKS || \
     defined NPZD_IRON   || \
     defined NPZD_POWELL || \
-    defined RED_TIDE
+    defined RED_TIDE    || \
+    defined BIO_UMAINE15
 # define BIOLOGY
 #endif
 
@@ -1137,7 +1138,8 @@
   !(defined BIO_FENNEL      || \
     defined ECB             || \
     defined ECOSIM          || \
-    defined HYPOXIA_SRM)
+    defined HYPOXIA_SRM     || \
+    defined BIO_UMAINE15)
 #  undef DIAGNOSTICS_BIO
 #endif
 

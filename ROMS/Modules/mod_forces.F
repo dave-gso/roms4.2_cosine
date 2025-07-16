@@ -64,7 +64,14 @@
 !                  at horizontal RHO-points                            !
 !  srflxG       Latest two-time snapshots of input "srflx" grided      !
 !                 data used for interpolation.                         !
-!                                                                      !
+!
+#  ifdef READ_ZENITH
+!  Solar zenith angle.
+
+!  zenith_ang   Solar zenith angle (degrees)
+!  zenith_angG
+#  endif
+                                                                      !
 !  Cloud fraction.                                                     !
 !                                                                      !
 !  cloud        Cloud fraction (percentage/100).                       !
@@ -348,6 +355,11 @@
 #  ifndef ANA_SRFLUX
           real(r8), pointer :: srflxG(:,:,:)
 #  endif
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1 && defined READ_ZENITH
+          real(r8), pointer :: zenith_ang(:,:)
+          real(r8), pointer :: zenith_angG(:,:,:)
+#  endif
+
 #  ifdef ICE_ALBEDO
           real(r8), pointer :: albedo(:,:)
 #   ifdef ICE_MODEL
@@ -792,6 +804,12 @@
 
 #  ifndef ANA_SRFLUX
       allocate ( FORCES(ng) % srflxG(LBi:UBi,LBj:UBj,2) )
+      Dmem(ng)=Dmem(ng)+size2d
+#  endif
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1 && defined READ_ZENITH
+      allocate ( FORCES(ng) % zenith_ang(LBi:UBi,LBj:UBj) )
+      Dmem(ng)=Dmem(ng)+size2d
+      allocate ( FORCES(ng) % zenith_angG(LBi:UBi,LBj:UBj,2) )
       Dmem(ng)=Dmem(ng)+size2d
 #  endif
 #  ifdef ICE_ALBEDO
@@ -1375,7 +1393,12 @@
       IF (.not.destroy(ng, FORCES(ng)%srflxG, MyFile,                   &
      &                 __LINE__, 'FORCES(ng)%srflxG')) RETURN
 #   endif
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1 && defined READ_ZENITH
+      IF (.not.destroy(ng, FORCES(ng)%zenith_ang, MyFile,               &
+     &                 __LINE__, 'FORCES(ng)%zenith_ang')) RETURN
+      IF (.not.destroy(ng, FORCES(ng)%zenith_angG, MyFile,              &
+     &                 __LINE__, 'FORCES(ng)%zenith_angG')) RETURN
+#   endif
 #   ifdef ICE_ALBEDO
       IF (.not.destroy(ng, FORCES(ng)%albedo, MyFile,                   &
      &                 __LINE__, 'FORCES(ng)%albedo')) RETURN
@@ -1978,6 +2001,11 @@
 #  ifndef ANA_SRFLUX
             FORCES(ng) % srflxG(i,j,1) = IniVal
             FORCES(ng) % srflxG(i,j,2) = IniVal
+#  endif
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1 && defined READ_ZENITH
+            FORCES(ng) % zenith_ang(i,j) = IniVal
+            FORCES(ng) % zenith_angG(i,j,1) = IniVal
+            FORCES(ng) % zenith_angG(i,j,2) = IniVal
 #  endif
 #  ifdef ICE_ALBEDO
             FORCES(ng) % albedo(i,j) = IniVal
