@@ -49,6 +49,9 @@
       USE mod_sedbed
       USE mod_sediment
 #endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+#endif
       USE mod_stepping
       USE mod_strings
 #if defined VEGETATION 
@@ -2276,6 +2279,230 @@
         END DO
 #  endif
 
+#  if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Read in sediment particulate concentrations.
+!
+        DO i=1,NPOM
+          IF (get_var(idbDR(i)).and.have_var(idbDR(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbPM(i))), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*bs3dvar
+              status=nf_fread3d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idbPM(i)), varid,               &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj, 1, nspc,            &
+     &                          Fscl, Fmin, Fmax,                       &
+#    ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#    ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedPOM(:,:,:,i),          &
+     &                          checksum = Fhash)
+#    else
+     &                          SEDBIOL(ng) % sedPOM(:,:,:,i))
+#    endif 
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbPM(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#    ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbPM(i))),            &
+     &                              Fmin, Fmax, Fhash
+#    else
+                  WRITE (stdout,70) TRIM(Vname(2,idbPM(i))),            &
+     &                              Fmin, Fmax
+#    endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbPM(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO 
+!
+!  Read in sediment particulate decay rates.
+!
+        DO i=1,NDR
+          IF (get_var(idbDR(i)).and.have_var(idbDR(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbDR(i))), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*bs3dvar
+              status=nf_fread3d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idbDR(i)), varid,               &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj, 1, nspc,            &
+     &                          Fscl, Fmin, Fmax,                       &
+#    ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#    ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedDecayRate(:,:,:,i),    &
+     &                          checksum = Fhash)
+#    else
+     &                          SEDBIOL(ng) % sedDecayRate(:,:,:,i))
+#    endif 
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbDR(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#    ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbDR(i))),            &
+     &                              Fmin, Fmax, Fhash
+#    else
+                  WRITE (stdout,70) TRIM(Vname(2,idbDR(i))),            &
+     &                              Fmin, Fmax
+#    endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbDR(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO 
+!
+!  Read in sediment porewater concentrations.
+!
+        DO i=1,NPWC
+          IF (get_var(idbPW(i)).and.have_var(idbPW(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbPW(i))), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*r2dvar
+              status=nf_fread2d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idbPW(i)), varid,               &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj,                     &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedPoreWaterCon(:,:,i),   &
+     &                          checksum = Fhash)
+#   else
+     &                          SEDBIOL(ng) % sedPoreWaterCon(:,:,i))
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbPW(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#   ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbPW(i))),            &
+     &                              Fmin, Fmax, Fhash
+#   else
+                  WRITE (stdout,70) TRIM(Vname(2,idbPW(i))),            &
+     &                              Fmin, Fmax
+#   endif
+
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbPW(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO
+!
+!  Read in benthic fluxes.
+!
+        DO i=1,NSF
+          IF (get_var(idbSF(i)).and.have_var(idbSF(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbSF(i))), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*r2dvar
+              status=nf_fread2d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idbSF(i)), varid,               &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj,                     &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedFlux(:,:,i),           &
+     &                          checksum = Fhash)
+#   else
+     &                          SEDBIOL(ng) % sedFlux(:,:,i))
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbSF(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#   ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbSF(i))),            &
+     &                              Fmin, Fmax, Fhash
+#   else
+                  WRITE (stdout,70) TRIM(Vname(2,idbSF(i))),            &
+     &                              Fmin, Fmax
+#   endif
+
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbSF(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO
+#  endif
 #  ifdef VEGETATION 
 #   if defined VEG_DRAG || defined VEG_BIOMASS
 !
@@ -10017,7 +10244,266 @@
           END IF
         END DO
 #   endif
+#   if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Read in sediment particulate concentrations.
+!
+        DO i=1,NPOM
+          IF (get_var(idbPM(i)).and.have_var(idbPM(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbPM(i))), vindex)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=bs3dvar
+              IF (KIND(SEDBIOL(ng)%sedPOM).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_bs3dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_bs3dvar(ng)
+              END IF
+!
+              status=nf_fread3d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idbPM(i)), my_pioVar,           &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj, 1, nspc,            &
+     &                          Fscl, Fmin, Fmax,                       &
+#     ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#     ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedPOM(:,:,:,i),          &
+     &                          checksum = Fhash)
+#     else
+     &                          SEDBIOL(ng) % sedPOM(:,:,:,i))
+#     endif 
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbPM(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#     ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbPM(i))),            &
+     &                              Fmin, Fmax, Fhash
+#     else
+                  WRITE (stdout,70) TRIM(Vname(2,idbPM(i))),            &
+     &                              Fmin, Fmax
+#     endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbPM(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO 
+!
+!  Read in sediment particulate decay rates.
+!
+        DO i=1,NDR
+          IF (get_var(idbDR(i)).and.have_var(idbDR(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbDR(i))), vindex)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=bs3dvar
+              IF (KIND(SEDBIOL(ng)%sedDecayRate).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_bs3dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_bs3dvar(ng)
+              END IF
+!
+              status=nf_fread3d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idbDR(i)), my_pioVar,           &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj, 1, nspc,            &
+     &                          Fscl, Fmin, Fmax,                       &
+#     ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#     ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedDecayRate(:,:,:,i),          &
+     &                          checksum = Fhash)
+#     else
+     &                          SEDBIOL(ng) % sedDecayRate(:,:,:,i))
+#     endif 
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbDR(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#     ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbDR(i))),            &
+     &                              Fmin, Fmax, Fhash
+#     else
+                  WRITE (stdout,70) TRIM(Vname(2,idbDR(i))),            &
+     &                              Fmin, Fmax
+#     endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbDR(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO 
+!
+!  Read in sediment porewater concentrations.
+!
+        DO i=1,NPWC
+          IF (get_var(idbPW(i)).and.have_var(idbPW(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbPW(i))), vindex)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=r2dvar
+              IF (KIND(SEDBIOL(ng)%sedPoreWaterCon).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_r2dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_r2dvar(ng)
+              END IF
+!
+              status=nf_fread2d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idbPW(i)), my_pioVar,           &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj,                     &
+     &                          Fscl, Fmin, Fmax,                       &
+#    ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#    ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedPoreWaterCon(:,:,i),   &
+     &                          checksum = Fhash)
+#    else
+     &                          SEDBIOL(ng) % sedPoreWaterCon(:,:,i))
+#    endif
+              IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbPW(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#    ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbPW(i))),            &
+     &                              Fmin, Fmax, Fhash
+#    else
+                  WRITE (stdout,70) TRIM(Vname(2,idbPW(i))),            &
+     &                              Fmin, Fmax
+#    endif
 
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbPW(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, PIO_noerr,                      &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO
+!
+!  Read in benthic fluxes.
+!
+        DO i=1,NSF
+          IF (get_var(idbSF(i)).and.have_var(idbSF(i))) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idbSF(i))), vindex)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=r2dvar
+              IF (KIND(SEDBIOL(ng)%sedFlux).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_r2dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_r2dvar(ng)
+              END IF
+!
+              status=nf_fread2d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idbSF(i)), my_pioVar,           &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj,                     &
+     &                          Fscl, Fmin, Fmax,                       &
+#    ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#    endif
+#    ifdef CHECKSUM
+     &                          SEDBIOL(ng) % sedFlux(:,:,i),           &
+     &                          checksum = Fhash)
+#    else
+     &                          SEDBIOL(ng) % sedFlux(:,:,i))
+#    endif
+              IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idbSF(i))),    &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#    ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idbSF(i))),            &
+     &                              Fmin, Fmax, Fhash
+#    else
+                  WRITE (stdout,70) TRIM(Vname(2,idbSF(i))),            &
+     &                              Fmin, Fmax
+#    endif
+
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idbSF(i))),      &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, PIO_noerr,                      &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+        END DO
+#   endif
 #   ifdef VEGETATION 
 #    if defined VEG_DRAG || defined VEG_BIOMASS
 !

@@ -88,6 +88,12 @@
       USE vegetation_output_mod, ONLY : vegetation_wrt_pio
 # endif
 #endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+      USE sedbio_output_mod, ONLY : sedbio_wrt_nf90
+# if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod, ONLY : sedbio_wrt_pio
+# endif
+#endif
 #if defined WEC_VF && defined SOLVE3D
       USE wec_output_mod,        ONLY : wec_wrt_nf90
 # if defined PIO_LIB && defined DISTRIBUTE
@@ -1570,6 +1576,79 @@
           RETURN
         END IF
       END IF
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+      IF (Hout(idkdPAR,ng)) THEN
+        scale=1.0_dp
+        gtype=gfactor*r3dvar
+        status=nf_fwrite3d(ng, model, HIS(ng)%ncid, idkdPAR,            &
+     &                     HIS(ng)%Vid(idkdPAR),                        &
+     &                     HIS(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     OCEAN(ng) % kdpar)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+!
+!  Write out CO2 surface flux
+!
+      IF (Hout(idfgCO2,ng)) THEN
+        scale=1.0_dp
+        gtype=gfactor*r2dvar
+        status=nf_fwrite2d(ng, model, HIS(ng)%ncid, idfgCO2,            &
+     &                     HIS(ng)%Vid(idfgCO2),                        &
+     &                     HIS(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, scale,                   &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     OCEAN(ng) % fgCO2)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idfgCO2)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+!
+!  Write out surface pCO2
+!
+      IF (Hout(idpCO2s,ng)) THEN
+        scale=1.0_dp
+        gtype=gfactor*r2dvar
+        status=nf_fwrite2d(ng, model, HIS(ng)%ncid, idpCO2s,           &
+     &                     HIS(ng)%Vid(idpCO2s),                       &
+     &                     HIS(ng)%Rindex, gtype,                      &
+     &                     LBi, UBi, LBj, UBj, scale,                  &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                           &
+# endif
+     &                     OCEAN(ng) % pCO2s)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idpCO2s)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+# endif      
 # ifdef LMD_SKPP
 !
 !  Write out depth surface boundary layer.
@@ -2344,7 +2423,17 @@
      &                            Hout, HIS)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
-
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out sediment biology variables
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_wrt_nf90 (ng, model, tile,                          &
+     &                            LBi, UBi, LBj, UBj,                   &
+     &                            Hout, HIS)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
 #if defined WEC_VF && defined SOLVE3D
 !
 !-----------------------------------------------------------------------
@@ -4066,7 +4155,94 @@
           RETURN
         END IF
       END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+      IF (Hout(idkdPAR,ng)) THEN
+        scale=1.0_dp
+        IF (HIS(ng)%pioVar(idkdPAR)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r3dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r3dvar(ng)
+        END IF
+        status=nf_fwrite3d(ng, model, HIS(ng)%pioFile, idkdPAR,         &
+     &                     HIS(ng)%pioVar(idkdPAR),                     &
+     &                     HIS(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % kdpar)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+#  endif  
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Write out CO2 surface flux
+!
+      IF (Hout(idfgCO2,ng)) THEN
+        scale=1.0_dp
+        IF (HIS(ng)%pioVar(idfgCO2)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r2dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r2dvar(ng)
+        END IF
+        status=nf_fwrite2d(ng, model, HIS(ng)%pioFile, idfgCO2,         &
+     &                     HIS(ng)%pioVar(idfgCO2),                     &
+     &                     HIS(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, scale,                   &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % fgCO2)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idfgCO2)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+!
+!  Write out surface pCO2
+!
+      IF (Hout(idpCO2s,ng)) THEN
+        scale=1.0_dp
+        IF (HIS(ng)%pioVar(idpCO2s)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r2dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r2dvar(ng)
+        END IF
+        status=nf_fwrite2d(ng, model, HIS(ng)%pioFile, idpCO2s,        &
+     &                     HIS(ng)%pioVar(idpCO2s),                    &
+     &                     HIS(ng)%Rindex,                             &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, scale,                  &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                           &
+#  endif
+     &                     OCEAN(ng) % pCO2s)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idpCO2s)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+#  endif          
 #  ifdef LMD_SKPP
 !
 !  Write out depth surface boundary layer.
@@ -4989,6 +5165,18 @@
 !-----------------------------------------------------------------------
 !
         CALL vegetation_wrt_pio (ng, model, tile,                       &
+     &                           LBi, UBi, LBj, UBj,                    &
+     &                           Hout, HIS)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_wrt_pio (ng, model, tile,                           &
      &                           LBi, UBi, LBj, UBj,                    &
      &                           Hout, HIS)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN

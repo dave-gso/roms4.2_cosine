@@ -91,6 +91,9 @@
 !  Wname       Wave model stadard input filename.                      !
 !  aparnam     Input assimilation parameters filename.                 !
 !  bparnam     Input biology parameters filename.                      !
+#if defined(BIO_UMAINE15) && defined(SEDBIO)
+!  bsedparnam  Input sediment biology parameters file name             !
+#endif
 !  fbionam     Input floats biological behavior parameters filename.   !
 !  fposnam     Input initial floats positions filename.                !
 !  iparnam     Input ice parameters file name.                         !
@@ -306,6 +309,9 @@
       character (len=256) :: USRname        ! use generic filename
       character (len=256) :: aparnam        ! assimilation parameters
       character (len=256) :: bparnam        ! biology model parameters
+#if defined(BIO_UMAINE15) && defined(SEDBIO)      
+      character (len=256) :: bsedparnam     ! sediment biology model parameters
+#endif
       character (len=256) :: fbionam        ! floats behavior parameters
       character (len=256) :: fposnam        ! floats positions
       character (len=256) :: iparnam        ! ice model parameters
@@ -757,6 +763,9 @@
         USRname(i:i)=blank
         aparnam(i:i)=blank
         bparnam(i:i)=blank
+#if defined(BIO_UMAINE15) && defined(SEDBIO)
+	  bsedparnam(i:i)=blank
+#endif
         fbionam(i:i)=blank
         fposnam(i:i)=blank
         sparnam(i:i)=blank

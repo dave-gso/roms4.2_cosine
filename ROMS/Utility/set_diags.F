@@ -490,7 +490,8 @@
         END DO
 # endif
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+      defined BIO_UMAINE15
         DO idiag=1,NDbio2d
           IF (idiag.ne.ipCO2) THEN
             DO j=JstrR,JendR
@@ -502,7 +503,7 @@
           END IF
         END DO
 #  endif
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
         DO idiag=1,NDbio3d
           DO k=1,N(ng)
             DO j=JstrR,JendR
@@ -657,7 +658,8 @@
 #   endif
 #  endif
 #  ifdef DIAGNOSTICS_BIO
-#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+       defined BIO_UMAINE15
 !
 !  Biological terms 2D diagnostics.
 !
@@ -674,7 +676,7 @@
      &                      DIAGS(ng)%DiaBio2d)
 #    endif
 #   endif
-#   if defined BIO_FENNEL || defined ECB
+#   if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
 !
 !  Biological terms 3D diagnostics.
 !

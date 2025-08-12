@@ -39,6 +39,12 @@
       USE ice_output_mod,  ONLY : ice_wrt_pio
 # endif
 #endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+      USE sedbio_output_mod, ONLY : sedbio_wrt_nf90
+# if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod, ONLY : sedbio_wrt_pio
+# endif
+#endif
       USE nf_fwrite2d_mod, ONLY : nf_fwrite2d
 #if defined PERFECT_RESTART || defined SOLVE3D
       USE nf_fwrite3d_mod, ONLY : nf_fwrite3d
@@ -695,7 +701,29 @@
         ioerror=status
         RETURN
       END IF
-
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+        scale=1.0_dp
+        gtype=gfactor*r3dvar
+        status=nf_fwrite3d(ng, model, RST(ng)%ncid, idkdPAR,            &
+     &                     RST(ng)%Vid(idkdPAR),                        &
+     &                     RST(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     OCEAN(ng) % kdpar)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+# endif
 # ifdef LMD_SKPP
 !
 !  Write out depth of surface boundary layer.
@@ -1201,6 +1229,17 @@
         CALL ice_wrt_nf90 (ng, model, tile,                             &
      &                     LBi, UBi, LBj, UBj,                          &
      &                     Hout, RST)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out sediment biology variables
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_wrt_nf90 (ng, model, tile,                          &
+     &                            LBi, UBi, LBj, UBj,                   &
+     &                            Hout, RST)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
 !
@@ -1935,7 +1974,88 @@
         ioerror=status
         RETURN
       END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+        scale=1.0_dp
+        IF (RST(ng)%pioVar(idkdPAR)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r3dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r3dvar(ng)
+        END IF
+        status=nf_fwrite3d(ng, model, RST(ng)%pioFile, idkdPAR,         &
+     &                     RST(ng)%pioVar(idkdPAR),                     &
+     &                     RST(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % kdpar)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+#  endif 
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Write out CO2 surface flux
+!
+        scale=1.0_dp
+        IF (RST(ng)%pioVar(idfgCO2)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r2dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r2dvar(ng)
+        END IF
+        status=nf_fwrite2d(ng, model, RST(ng)%pioFile, idfgCO2,         &
+     &                     RST(ng)%pioVar(idfgCO2),                     &
+     &                     RST(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, scale,                   &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % fgCO2)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idfgCO2)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+!
+!  Write out surface pCO2
+!
+        scale=1.0_dp
+        IF (RST(ng)%pioVar(idpCO2s)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r2dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r2dvar(ng)
+        END IF
+        status=nf_fwrite2d(ng, model, RST(ng)%pioFile, idpCO2s,        &
+     &                     RST(ng)%pioVar(idpCO2s),                    &
+     &                     RST(ng)%Rindex,                             &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, scale,                  &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                           &
+#  endif
+     &                     OCEAN(ng) % pCO2s)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idpCO2s)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+#  endif           
 #  ifdef LMD_SKPP
 !
 !  Write out depth of surface boundary layer.
@@ -2547,6 +2667,17 @@
         CALL ice_wrt_pio (ng, model, tile,                              &
      &                    LBi, UBi, LBj, UBj,                           &
      &                    Hout, RST)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_wrt_pio (ng, model, tile,                           &
+     &                           LBi, UBi, LBj, UBj,                    &
+     &                           Hout, RST)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 !

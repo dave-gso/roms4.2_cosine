@@ -67,6 +67,10 @@
               CASE ('idkdPAR')
                 idkdPAR=varid
 #endif
+#ifdef READ_ZENITH
+	        CASE ('idzang')
+		    idzang=varid
+#endif
 #ifdef HAB
               CASE ('idTvar(iHphy)')
                 idTvar(iHphy)=varid

@@ -433,6 +433,7 @@
 !  They can turned off for a particular grind in input scripts.
 !
         logical, allocatable :: Lbiology(:)
+        logical, allocatable :: Lsedbiology(:)
         logical, allocatable :: Lfloats(:)
         logical, allocatable :: Lsediment(:)
         logical, allocatable :: Lstations(:)
@@ -2193,6 +2194,10 @@
         allocate ( Lbiology(Ngrids) )
         Dmem(1)=Dmem(1)+REAL(Ngrids,r8)
       END IF
+      IF (.not.allocated(Lsedbiology)) THEN
+        allocate ( Lsedbiology(Ngrids) )
+        Dmem(1)=Dmem(1)+REAL(Ngrids,r8)
+      END IF
       IF (.not.allocated(Lfloats)) THEN
         allocate ( Lfloats(Ngrids) )
         Dmem(1)=Dmem(1)+REAL(Ngrids,r8)
@@ -3610,6 +3615,8 @@
       IF (allocated(ObcData))           deallocate ( ObcData )
 
       IF (allocated(Lbiology))          deallocate ( Lbiology )
+      
+      IF (allocated(Lsedbiology))       deallocate ( Lsedbiology )
 
       IF (allocated(Lfloats))           deallocate ( Lfloats )
 
@@ -4399,6 +4406,7 @@
         RefinedGrid(ng)=.FALSE.
         GetDonorData(ng)=.FALSE.
         Lbiology(ng)=.TRUE.
+        Lsedbiology(ng)=.TRUE.
         LcycleADJ(ng)=.FALSE.
         LcycleRST(ng)=.FALSE.
         LcycleTLM(ng)=.FALSE.

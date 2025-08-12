@@ -826,6 +826,7 @@
 !                               'b3dvar' => 3D BED-sediment            !
 !                               'l3dvar' => 3D spectral light variable !
 !                               'l4dvar' => 4D spectral light variable !
+!                               'bs3dvar' => 3D Bio_sediment           !
 !                  Vinfo(8):  Index code for information arrays        !
 !                                                                      !
 !     scale      Scale to convert input data to model units (real)     !

@@ -90,7 +90,7 @@
 
       CONTAINS
 
-      SUBROUTINE allocate_sedbio_arrays (ng, LBi, UBi, LBj, UBj)
+      SUBROUTINE allocate_sedbio (ng, LBi, UBi, LBj, UBj)
 !
 !=======================================================================
 !                                                                      !
@@ -110,18 +110,15 @@
 !
         IF (ng.eq.1) allocate ( SEDBIOL(Ngrids) )
 
-!        write(*,*)  'allocate_sedbio_arrays: ng =',ng
-!        write(*,*) 'allocate_sedbio_arrays:',LBi,UBi,LBj,UBj,nspc,NPOM
-
         allocate ( SEDBIOL(ng) % sedPOM(LBi:UBi,LBj:UBj,nspc,NPOM) )
         allocate ( SEDBIOL(ng) % sedPoreWaterCon(LBi:UBi,LBj:UBj,NPWC) )
         allocate ( SEDBIOL(ng) % sedDecayRate(LBi:UBi,LBj:UBj,nspc,NDR) )
         allocate ( SEDBIOL(ng) % sedFlux(LBi:UBi,LBj:UBj,NSF) )
 
       RETURN
-      END SUBROUTINE allocate_sedbio_arrays
+      END SUBROUTINE allocate_sedbio
 
-      SUBROUTINE deallocate_sedbio_arrays (ng)
+      SUBROUTINE deallocate_sedbio (ng)
 !
 !=======================================================================
 !                                                                      !
@@ -146,9 +143,9 @@
       END IF
 !
       RETURN
-      END SUBROUTINE deallocate_sedbio_arrays
+      END SUBROUTINE deallocate_sedbio
 
-      SUBROUTINE initialize_sedbio_arrays (ng, tile, model)
+      SUBROUTINE initialize_sedbio (ng, tile, model)
 !
 !=======================================================================
 !                                                                      !
@@ -237,6 +234,6 @@
       END IF
 
       RETURN
-      END SUBROUTINE initialize_sedbio_arrays
+      END SUBROUTINE initialize_sedbio
 
       END MODULE mod_sedbio

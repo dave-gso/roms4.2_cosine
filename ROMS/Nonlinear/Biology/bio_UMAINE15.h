@@ -411,6 +411,7 @@
 #ifdef OPTICS_OP1
       real(r8) :: dt_optics
       real(r8), parameter :: kdIniVal = 0.05_r8
+      integer :: optics_call
 #endif
 ! parameters controling light inhibition of nitrification (W/m^2)
       real(r8), parameter :: II00 = 0.0095_r8
@@ -513,6 +514,12 @@
 #ifdef OPTICS_OP1
 !  Set time step for updating kdpar
       dt_optics=dt(ng)*optic_upd_fac(ng)/REAL(BioIter(ng),r8)
+!  set flag indicating whether optics routine is called      
+      optics_call=0
+      IF( mod(time(ng),dt_optics).lt.0.000001_r8) then
+!        write(*,*)'calling kdPAR_compute at time =',time(ng)
+        optics_call=1
+      END IF
 #endif
 !
 !  Set vertical sinking identification vector.
@@ -582,7 +589,8 @@
         END DO
       END DO
 #endif
-
+      
+        
       J_LOOP : DO j=Jstr,Jend
    
 #ifdef SEDBIO
@@ -694,9 +702,7 @@
 !  surface or bottom of a vertical grid, or at w location vertically.
 !
 #ifdef OPTICS_OP1
-      IF( mod(time(ng),dt_optics).lt.0.000001_r8) then
-!        write(*,*)'calling kdPAR_compute'
-!        call optic_property(Istr, Iend, ng,                             &
+      IF( optics_call.eq.1 ) then
         call kdPAR_compute(Istr, Iend, ng,                              &
      &                       LBi, UBi, LBj, UBj, UBk,                   &
      &                       IminS, ImaxS, j,                           &
@@ -721,8 +727,7 @@
             kdpar(i,j,k)=kd(i,k)
           END DO
         END DO
-
-      ENDIF
+      END IF
 #endif
 
     DO i=Istr,Iend
@@ -1971,28 +1976,28 @@
 # ifdef DISTRIBUTE
 !
 ! exchange sediment biology variables between tiles to fill in ghost points
-	call mp_exchange3d(ng, tile, iNLM, 1,					&
-     &			 LBi, UBi, LBj, UBj, 1, NPWC,				&
+      call mp_exchange3d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, NPWC,                   &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 sedPoreWaterCon)
 
-	call mp_exchange3d(ng, tile, iNLM, 1,					&
-     &			 LBi, UBi, LBj, UBj, 1, NSF,				&
+      call mp_exchange3d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, NSF,                    &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 sedFlux)
      
-      call mp_exchange4d(ng, tile, iNLM, 1,					&
-     &			 LBi, UBi, LBj, UBj, 1, nspc, 1, NDR,		&
+      call mp_exchange4d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, nspc, 1, NDR,           &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 sedDecayRate)
      
-      call mp_exchange4d(ng, tile, iNLM, 1,					&
-     &			 LBi, UBi, LBj, UBj, 1, nspc, 1, NPOM,		&
+      call mp_exchange4d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, nspc, 1, NPOM,          &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 sedPOM)
      
-     call mp_exchange3d(ng, tile, iNLM, 1,					&
-     &			 LBi, UBi, LBj, UBj, 1, N(ng),	   	      &
+      call mp_exchange3d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, N(ng),                  &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 kdpar)
 # endif   

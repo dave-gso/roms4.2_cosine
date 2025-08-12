@@ -23,6 +23,9 @@
 # if defined SEDIMENT || defined BBL_MODEL
       USE mod_sediment
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+# endif
       USE mod_scalars
 !
       USE inp_decode_mod
@@ -120,6 +123,57 @@
             CASE ('Sout(idVbms)')
               Npts=load_l(Nval, Cval, Ngrids, Lswitch)
               Sout(idVbms,1:Ngrids)=Lswitch(1:Ngrids)
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+            CASE('Sout(idkdPAR)')
+              Npts=load_l(Nval, Cval, Ngrids, Lswitch)
+              Sout(idkdPAR,1:Ngrids)=Lswitch(1:Ngrids)
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+            CASE('Sout(idfgCO2)')
+              Npts=load_l(Nval, Cval, Ngrids, Lswitch)
+              Sout(idfgCO2,1:Ngrids)=Lswitch(1:Ngrids)
+            CASE('Sout(idpCO2s)')
+              Npts=load_l(Nval, Cval, Ngrids, Lswitch)
+              Sout(idpCO2s,1:Ngrids)=Lswitch(1:Ngrids)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+            CASE ('Sout(idbPM)')
+!              Npts=load_l(Nval, Cval, NPOM, Ngrids, Ltracer)
+              Npts=load_l(Nval, Cval, MT, Ngrids, Ltracer)
+              DO ng=1,Ngrids
+                DO itrc=1,NPOM
+                  i=idbPM(itrc)
+                  Sout(i,ng)=Ltracer(itrc,ng)
+                END DO
+              END DO
+            CASE ('Sout(idbPW)')
+!              Npts=load_l(Nval, Cval, NPWC, Ngrids, Ltracer)
+              Npts=load_l(Nval, Cval, MT, Ngrids, Ltracer)
+              DO ng=1,Ngrids
+                DO itrc=1,NPWC
+                  i=idbPW(itrc)
+                  Sout(i,ng)=Ltracer(itrc,ng)
+                END DO
+              END DO
+            CASE ('Sout(idbDR)')
+!              Npts=load_l(Nval, Cval, NDR, Ngrids, Ltracer)
+              Npts=load_l(Nval, Cval, MT, Ngrids, Ltracer)
+              DO ng=1,Ngrids
+                DO itrc=1,NDR
+                  i=idbDR(itrc)
+                  Sout(i,ng)=Ltracer(itrc,ng)
+                END DO
+              END DO
+            CASE ('Sout(idbSF)')
+!              Npts=load_l(Nval, Cval, NSF, Ngrids, Ltracer)
+              Npts=load_l(Nval, Cval, MT, Ngrids, Ltracer)
+              DO ng=1,Ngrids
+                DO itrc=1,NSF
+                  i=idbSF(itrc)
+                  Sout(i,ng)=Ltracer(itrc,ng)
+                END DO
+              END DO
+#  endif
 # ifdef BBL_MODEL
             CASE ('Sout(idUbrs)')
               Npts=load_l(Nval, Cval, Ngrids, Lswitch)
@@ -908,6 +962,46 @@
      &            Sout(idBott(itrc),ng), 'Sout(idBott)',                &
      &            'Write out bottom property ', itrc,                   &
      &            TRIM(Vname(1,idBott(itrc)))
+            END DO
+# endif
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+            IF (Sout(idkdPAR,ng)) WRITE (out,90) Sout(idkdPAR,ng),      &
+     &          'Sout(idkdPAR)',                                         &
+     &          'Write out light attenuation coefficient.'
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+            IF (Sout(idfgCO2,ng)) WRITE (out,90) Sout(idfgCO2,ng),      &
+     &          'Sout(idfgCO2)',                                        &
+     &          'Write out CO2 surface flux.'
+            IF (Sout(idpCO2s,ng)) WRITE (out,90) Sout(idpCO2s,ng),     &
+     &          'Sout(idpCO2s)',                                       &
+     &          'Write out surface CO2 partial pressure.'
+
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+            DO itrc=1,NPOM
+              IF (Sout(idbPM(itrc),ng)) WRITE (out,100)                &
+     &            Sout(idbPM(itrc),ng), 'Sout(idbPM)',                 &
+     &            'Write out benthic PM conc. ', itrc,                 &
+     &            TRIM(Vname(1,idbPM(itrc)))
+            END DO
+            DO itrc=1,NPWC
+              IF (Sout(idbPW(itrc),ng)) WRITE (out,100)                &
+     &            Sout(idbPW(itrc),ng), 'Sout(idbPW)',                 &
+     &            'Write out benthic porewater conc. ', itrc,          &
+     &            TRIM(Vname(1,idbPW(itrc)))
+            END DO
+            DO itrc=1,NDR
+              IF (Sout(idbDR(itrc),ng)) WRITE (out,100)                &
+     &            Sout(idbDR(itrc),ng), 'Sout(idbDR)',                 &
+     &            'Write out benthic PM decay rate ', itrc,            &
+     &            TRIM(Vname(1,idbDR(itrc)))
+            END DO
+            DO itrc=1,NSF
+              IF (Sout(idbSF(itrc),ng)) WRITE (out,100)                &
+     &            Sout(idbSF(itrc),ng), 'Sout(idbSF)',                 &
+     &            'Write out benthic nutrient fluxes ', itrc,          &
+     &            TRIM(Vname(1,idbSF(itrc)))
             END DO
 # endif
 # ifdef SOLVE3D

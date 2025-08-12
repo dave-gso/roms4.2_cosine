@@ -32,6 +32,7 @@
 #                      b3dvar  => 3D BED-sediment
 #                      l3dvar  => 3D spectral light variable
 #                      l4dvar  => 4D spectral light variable
+#                      bs3dvar => 3D Bio-sediment
 #    add_offset      Value added to input data
 #    scale           Scale to convert input data to model units
 #
@@ -363,6 +364,17 @@ metadata:
     field:          salinity constant depth slices
     time:           ocean_time
     index_code:     idzslT(isalt)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       kdPAR                                            # Input/Output
+    standard_name:  sea_water_extinction_coefficient_for_PAR
+    long_name:      extinction coefficient for PAR
+    units:          meter-1 
+    field:          kdPAR
+    time:           ocean_time
+    index_code:     idkdPAR
     type:           r3dvar
     add_offset:     0.0d0
     scale:          1.0d0
@@ -1260,6 +1272,27 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
+  - variable:       fgCO2                                           # Output
+    standard_name:  sea_surface_downward_CO2_flux
+    long_name:      sea surface downward CO2 flux
+    units:          mmol meter-2 day-1                        
+    field:          CO2 surface flux                                
+    time:           ocean_time
+    index_code:     idfgCO2
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       pCO2s                                           # Output
+    standard_name:  sea_surface_partial_pressure_CO2
+    long_name:      sea surface CO2 partial pressure
+    units:          ppmv                                        
+    field:          CO2 partial pressure                               
+    time:           ocean_time
+    index_code:     idpCO2s
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
   ####################################################
   ###  Vertical Mixing Parameterization Variables  ###
   ####################################################
@@ -1865,7 +1898,17 @@ metadata:
     type:           r2dvar
     add_offset:     0.0d0
     scale:          1.0d0
-
+    
+  - variable:       zenith_ang                                  # Input/Output
+    standard_name:  solar_zenith_angle
+    long_name:      solar zenith angle
+    units:          degrees                                     # [deg.]
+    field:          solar zenith angle
+    time:           srf_time
+    index_code:     idzang
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
   ################################
   ###  Wave Forcing Variables  ###
   ################################
@@ -2542,7 +2585,8 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
-  - variable:       river_detritus                                   # Input
+# - variable:       river_detritus                                   # Input
+  - variable:       river_SDet                                       # Input
     standard_name:  mole_concentration_of_detritus_transport_expressed_as_nitrogen_into_sea_water_from_rivers
     long_name:      river runoff detritus
     units:          millimole_nitrogen meter-3                       # [millimole/m3]
@@ -2630,7 +2674,8 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
-  - variable:       river_TAlk                                       # Input
+# - variable:       river_TAlk                                       # Input
+  - variable:       river_alkalinity                                 # Input
     standard_name:  alkalinity_transport_expressed_as_mole_equivalent_into_sea_water_from_rivers
     long_name:      river runoff alkalinity
     units:          milliequivalents meter-3                         # [milliequivalens/m3]
@@ -2652,6 +2697,116 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
+  - variable:       river_SiOH4                                       # Input
+    standard_name:  mole_concentration_of_silicate_transport_into_sea_water_from_rivers
+    long_name:      river runoff silicate
+    units:          millimole_Silica meter-3                         # [millimole/m3]
+    field:          river silicate
+    time:           river_time
+    index_code:     idRtrc(iSiOH)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_opal                                       # Input
+    standard_name:  mole_concentration_of_opal_transport_into_sea_water_from_rivers
+    long_name:      river runoff opal
+    units:          millimole_opal meter-3                         # [millimole/m3]
+    field:          river opal
+    time:           river_time
+    index_code:     idRtrc(iopal)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_Sphy                                       # Input
+    standard_name:  mole_concentration_of_small_phytoplankton_transport_into_sea_water_from_rivers
+    long_name:      river runoff small phytoplankton
+    units:          millimole_nitrogen meter-3                         # [millimole/m3]
+    field:          river Sphy
+    time:           river_time
+    index_code:     idRtrc(iSphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_Lphy                                       # Input
+    standard_name:  mole_concentration_of_diatom_transport_into_sea_water_from_rivers
+    long_name:      river runoff diatom
+    units:          millimole_nitrogen meter-3                         # [millimole/m3]
+    field:          river Lphy
+    time:           river_time
+    index_code:     idRtrc(iLphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+     
+  - variable:       river_Hphy                                       # Input
+    standard_name:  mole_concentration_of_HAB_phytoplankton_transport_into_sea_water_from_rivers
+    long_name:      river runoff HAB phytoplankton
+    units:          millimole_nitrogen meter-3                         # [millimole/m3]
+    field:          river Hphy
+    time:           river_time
+    index_code:     idRtrc(iHphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_Szoo                                       # Input
+    standard_name:  mole_concentration_of_microzooplankton_transport_into_sea_water_from_rivers
+    long_name:      river runoff microzooplankton
+    units:          millimole_nitrogen meter-3                         # [millimole/m3]
+    field:          river Szoo
+    time:           river_time
+    index_code:     idRtrc(iSzoo)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_Lzoo                                       # Input
+    standard_name:  mole_concentration_of_mesozooplankton_transport_into_sea_water_from_rivers
+    long_name:      river runoff mesozooplankton
+    units:          millimole_nitrogen meter-3                         # [millimole/m3]
+    field:          river Lzoo
+    time:           river_time
+    index_code:     idRtrc(iLzoo)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_chlorophyll1                               # Input
+    standard_name:  mole_concentration_of_small_phytoplankton_chlorophyll_transport_into_sea_water_from_rivers
+    long_name:      river runoff chlorophyll1
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          river chlorophyll1
+    time:           river_time
+    index_code:     idRtrc(iChl1)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_chlorophyll2                               # Input
+    standard_name:  mole_concentration_of_diatom_chlorophyll_transport_into_sea_water_from_rivers
+    long_name:      river runoff chlorophyll2
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          river chlorophyll2
+    time:           river_time
+    index_code:     idRtrc(iChl2)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       river_chlorophyll3                               # Input
+    standard_name:  mole_concentration_of_HAB_phytoplankton_chlorophyll_transport_into_sea_water_from_rivers
+    long_name:      river runoff chlorophyll3
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          river chlorophyll3
+    time:           river_time
+    index_code:     idRtrc(iChl3)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
   #################################################
   ###  Surface/Bottom Boundary Layer Variables  ###
   #################################################
@@ -3880,7 +4035,7 @@ metadata:
     scale:          1.0d0
 
   ######################################################################
-  ###  Ecosystem Variables: BIO_FENNEL, ECB, HYPOXIA, NEMURO or NPZD ###
+  ###  Ecosystem Variables: BIO_FENNEL, ECB, HYPOXIA, NEMURO, NPZD, BIO_UMAINE15 ###
   ######################################################################
 
   - variable:       NO3                                              # Input/Output
@@ -4059,7 +4214,8 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
-  - variable:       nanophytoplankton                                # Input/Output
+# - variable:       nanophytoplankton                                # Input/Output
+  - variable:       smallphytoplankton                                # Input/Output
     standard_name:  mole_concentration_of_nanophytoplankton_expressed_as_nitrogen_in_sea_water
     long_name:      nanophytoplankton biomass
     units:          millimole_nitrogen meter-3                       # [millimole/m3]
@@ -4389,6 +4545,38 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
+  - variable:       chlorophyll1                                      # Input/Output
+    standard_name:  mole_concentration_of_small_phytoplankton_chlorophyll_in_sea_water
+    long_name:      small phytoplankton chlorophyll concentration
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          chlorophyll1
+    time:           ocean_time
+    index_code:     idTvar(iChl1)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       chlorophyll2                                      # Input/Output
+    standard_name:  mole_concentration_of_diatom_chlorophyll_in_sea_water
+    long_name:      diatom chlorophyll concentration
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          chlorophyll2
+    time:           ocean_time
+    index_code:     idTvar(iChl2)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       chlorophyll3                                      # Input/Output
+    standard_name:  mole_concentration_of_HAB_phytoplankton_chlorophyll_in_sea_water
+    long_name:      HAB phytoplankton chlorophyll concentration
+    units:          milligrams_chlorophyll meter-3                   # [milligrams/m3]
+    field:          chlorophyll3
+    time:           ocean_time
+    index_code:     idTvar(iChl3)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
   # Time-averaged Diagnostic Variables
 
   - variable:       CO2_airsea                                       # Input/Output
@@ -4468,6 +4656,414 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
+  - variable:       P1_Production                                     # Input/Output
+    standard_name:  sea_water_primary_production_of_small_phytoplankton_biomass_expressed_as_nitrogen
+    long_name:      primary production of small phytoplankton
+    units:          millimole_nitrogen meter-3 day-1                 # [millimole/m3/day]
+    field:          primary production of P1
+    time:           ocean_time
+    index_code:     iDbio3(iPPro1)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       P2_Production                                     # Input/Output
+    standard_name:  sea_water_primary_production_of_diatom_biomass_expressed_as_nitrogen
+    long_name:      primary production of diatoms
+    units:          millimole_nitrogen meter-3 day-1                 # [millimole/m3/day]
+    field:          primary production of P2
+    time:           ocean_time
+    index_code:     iDbio3(iPPro2)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_prod_phyto                                     # Input/Output
+    standard_name:  sea_water_oxygen_production_by_phytoplankton
+    long_name:      oxygen production by phytoplankton
+    units:          millimole_oxygen meter-3 day-1                 # [millimole/m3/day]
+    field:          oxygen production by phytoplankton
+    time:           ocean_time
+    index_code:     iDbio3(iO2pr)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_uptake_nitrif                                     # Input/Output
+    standard_name:  sea_water_oxygen_uptake_by_nitrification
+    long_name:      oxygen uptake by nitrification
+    units:          millimole_oxygen meter-3 day-1                 # [millimole/m3/day]
+    field:          oxygen uptake by nitrification
+    time:           ocean_time
+    index_code:     iDbio3(initri)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_uptake_remin                                     # Input/Output
+    standard_name:  sea_water_oxygen_uptake_by_remineralization
+    long_name:      oxygen uptake by remineralization
+    units:          millimole_oxygen meter-3 day-1                 # [millimole/m3/day]
+    field:          oxygen uptake by remineralization
+    time:           ocean_time
+    index_code:     iDbio3(iremin)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_uptake_zoopl                                     # Input/Output
+    standard_name:  sea_water_oxygen_uptake_by_zooplankton
+    long_name:      oxygen uptake by zooplankton
+    units:          millimole_oxygen meter-3 day-1                 # [millimole/m3/day]
+    field:          oxygen uptake by zooplankton
+    time:           ocean_time
+    index_code:     iDbio3(izoopl)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_uptake_phyto_resp                                    # Input/Output
+    standard_name:  sea_water_oxygen_uptake_by_phytoplankton
+    long_name:      oxygen uptake by phytoplankton
+    units:          millimole_oxygen meter-3 day-1                 # [millimole/m3/day]
+    field:          oxygen uptake by phytoplankton
+    time:           ocean_time
+    index_code:     iDbio3(iphyres)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       NO3_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of NO3
+    long_name:      benthic flux of nitrate
+    units:          millimole_nitrogen meter-2 day-1                 # [millimole/m3/day]
+    field:          benthic flux of NO3
+    time:           ocean_time
+    index_code:     iDbio2(ibNO3fx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       NH4_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of NH4
+    long_name:      benthic flux of ammonium
+    units:          millimole_nitrogen meter-2 day-1                 # [millimole/m3/day]
+    field:          benthic flux of NH4
+    time:           ocean_time
+    index_code:     iDbio2(ibNH4fx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       PO4_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of PO4
+    long_name:      benthic flux of phosphate
+    units:          millimole_phosphorus meter-2 day-1                 # [millimole/m3/day]
+    field:          benthic flux of PO4
+    time:           ocean_time
+    index_code:     iDbio2(ibPO4fx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       SiO2_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of SiO2
+    long_name:      benthic flux of silicate
+    units:          millimole_silicon meter-2 day-1                 # [millimole/m3/day]
+    field:          benthic flux of SiO2
+    time:           ocean_time
+    index_code:     iDbio2(ibSiO2fx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       TIC_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of TIC
+    long_name:      benthic flux of total inorganic carbon
+    units:          millimole_carbon meter-2 day-1                 
+    field:          benthic flux of TIC
+    time:           ocean_time
+    index_code:     iDbio2(ibTICfx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       Alk_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of Alk
+    long_name:      benthic flux of alkalinity
+    units:          milliequivalents meter-2 day-1                
+    field:          benthic flux of Alk
+    time:           ocean_time
+    index_code:     iDbio2(ibAlkfx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       O2_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of O2
+    long_name:      benthic flux of oxygen
+    units:          millimole_oxygen meter-2 day-1               
+    field:          benthic flux of O2
+    time:           ocean_time
+    index_code:     iDbio2(ibO2fx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
+  - variable:       PON_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of PON
+    long_name:      benthic flux of particulate organic nitrogen
+    units:          millimole_nitrogen meter-2 day-1                
+    field:          benthic flux of PON
+    time:           ocean_time
+    index_code:     iDbio2(ibPONfx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       PSi_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of PSi
+    long_name:      benthic flux of particulate silicon (opal)
+    units:          millimole_silicon meter-2 day-1                
+    field:          benthic flux of PSi
+    time:           ocean_time
+    index_code:     iDbio2(ibPSifx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  # Sediment Biology Variables
+  - variable:       benthic_POC                             # Input/Output
+    standard_name:  mole_concentration_particulate_organic_carbon_in_sediments
+    long_name:      concentration of particulate organic carbon in sediments
+    units:          millimole_carbon meter-3               
+    field:          benthic_POC
+    time:           ocean_time
+    index_code:     idbPM(ibPOC)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0 
+    
+  - variable:       benthic_PON                             # Input/Output
+    standard_name:  mole_concentration_particulate_organic_nitrogen_in_sediments
+    long_name:      concentration of particulate organic nitrogen in sediments
+    units:          millimole_nitrogen meter-3               
+    field:          benthic_PON
+    time:           ocean_time
+    index_code:     idbPM(ibPON)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_POP                             # Input/Output
+    standard_name:  mole_concentration_particulate_organic_phosphorus_in_sediments
+    long_name:      concentration of particulate organic phosphorus in sediments
+    units:          millimole_phosphorus meter-3               
+    field:          benthic_POP
+    time:           ocean_time
+    index_code:     idbPM(ibPOP)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+    
+  - variable:       benthic_PSi                             # Input/Output
+    standard_name:  mole_concentration_particulate_silicon_in_sediments
+    long_name:      concentration of particulate organic silicon in sediments
+    units:          millimole_silicon meter-3               
+    field:          benthic_PSi
+    time:           ocean_time
+    index_code:     idbPM(ibPSi)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0   
+    
+  - variable:       decayrate_POC                             # Input/Output
+    standard_name:  decay_rate_of_particulate_organic_carbon_in_sediments
+    long_name:      decay rate of particulate organic carbon in sediments
+    units:          day-1               
+    field:          decayrate_POC
+    time:           ocean_time
+    index_code:     idbDR(ibUC)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0   
+    
+  - variable:       decayrate_PON                             # Input/Output
+    standard_name:  decay_rate_of_particulate_organic_nitrogen_in_sediments
+    long_name:      decay rate of particulate organic nitrogen in sediments
+    units:          day-1               
+    field:          decayrate_PON
+    time:           ocean_time
+    index_code:     idbDR(ibUN)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       decayrate_POP                             # Input/Output
+    standard_name:  decay_rate_of_particulate_organic_phosphorus_in_sediments
+    long_name:      decay rate of particulate organic phosphorus in sediments
+    units:          day-1               
+    field:          decayrate_POP
+    time:           ocean_time
+    index_code:     idbDR(ibUP)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       decayrate_PSi                             # Input/Output
+    standard_name:  decay_rate_of_particulate_organic_silicon_in_sediments
+    long_name:      decay rate of particulate organic silicon in sediments
+    units:          day-1               
+    field:          decayrate_PSi
+    time:           ocean_time
+    index_code:     idbDR(ibUS)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       porewater_NO3                             # Input/Output
+    standard_name:  mole_concentration_of_NO3_in_sediment_porewater
+    long_name:      mole concentration of NO3 in sediment porewater
+    units:          millimole_nitrogen meter-3              
+    field:          porewater_NO3
+    time:           ocean_time
+    index_code:     idbPW(ibNO3)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0 
+    
+  - variable:       porewater_NH4                             # Input/Output
+    standard_name:  mole_concentration_of_NH4_in_sediment_porewater
+    long_name:      mole concentration of NH4 in sediment porewater
+    units:          millimole_nitrogen meter-3              
+    field:          porewater_NH4
+    time:           ocean_time
+    index_code:     idbPW(ibNH4)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       porewater_PO4                             # Input/Output
+    standard_name:  mole_concentration_of_PO4_in_sediment_porewater
+    long_name:      mole concentration of PO4 in sediment porewater
+    units:          millimole_phosphorus meter-3              
+    field:          porewater_PO4
+    time:           ocean_time
+    index_code:     idbPW(ibPO4)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       porewater_Si                             # Input/Output
+    standard_name:  mole_concentration_of_silicon_in_sediment_porewater
+    long_name:      mole concentration of silicon in sediment porewater
+    units:          millimole_silicon meter-3              
+    field:          porewater_Si
+    time:           ocean_time
+    index_code:     idbPW(ibSi)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+    
+  - variable:       porewater_TIC                             # Input/Output
+    standard_name:  mole_concentration_of_TIC_in_sediment_porewater
+    long_name:      mole concentration of total inorganic carbon in sediment porewater
+    units:          millimole_carbon meter-3              
+    field:          porewater_TIC
+    time:           ocean_time
+    index_code:     idbPW(ibTIC)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       porewater_Alk                             # Input/Output
+    standard_name:  mole_concentration_of_total_alkalinity_in_sediment_porewater
+    long_name:      mole concentration of total alkalinity in sediment porewater
+    units:          milliequivalent meter-3              
+    field:          porewater_Alk
+    time:           ocean_time
+    index_code:     idbPW(ibAlk)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+    
+  - variable:       benthic_flux_NO3                             # Input/Output
+    standard_name:  benthic_flux_of_NO3
+    long_name:      benthic flux of NO3
+    units:          millimole_nitrogen meter-2 day-1              
+    field:          benthic_flux_NO3
+    time:           ocean_time
+    index_code:     idbSF(ibJNO3)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_flux_NH4                             # Input/Output
+    standard_name:  benthic_flux_of_NH4
+    long_name:      benthic flux of NH4
+    units:          millimole_nitrogen meter-2 day-1              
+    field:          benthic_flux_NH4
+    time:           ocean_time
+    index_code:     idbSF(ibJNH4)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_flux_PO4                             # Input/Output
+    standard_name:  benthic_flux_of_PO4
+    long_name:      benthic flux of PO4
+    units:          millimole_phosphorus meter-2 day-1              
+    field:          benthic_flux_PO4
+    time:           ocean_time
+    index_code:     idbSF(ibJPO4)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_flux_Si                             # Input/Output
+    standard_name:  benthic_flux_of_silicon
+    long_name:      benthic flux of silicon
+    units:          millimole_silicon meter-2 day-1              
+    field:          benthic_flux_Si
+    time:           ocean_time
+    index_code:     idbSF(ibJSi)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_flux_TIC                             # Input/Output
+    standard_name:  benthic_flux_of_TIC
+    long_name:      benthic flux of total inorganic carbon
+    units:          millimole_carbon meter-2 day-1              
+    field:          benthic_flux_TIC
+    time:           ocean_time
+    index_code:     idbSF(ibJTIC)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
+  - variable:       benthic_flux_Alk                             # Input/Output
+    standard_name:  benthic_flux_of_Alk
+    long_name:      benthic flux of total alkalinity
+    units:          milliequivalent meter-2 day-1              
+    field:          benthic_flux_Alk
+    time:           ocean_time
+    index_code:     idbSF(ibJAlk)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0 
+    
+  - variable:       SOD                             # Input/Output
+    standard_name:  benthic_flux_of_oxygen
+    long_name:      benthic flux of oxygen
+    units:          millimole_oxygen meter-2 day-1              
+    field:          SOD
+    time:           ocean_time
+    index_code:     idbSF(ibSOD)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
   # Lateral Boundary Condition Variables
 
   - variable:       NO3_east                                         # Input
@@ -5658,6 +6254,185 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
 
+  ########################
+  ###  CoSiNE Model variables not already defined  ###
+  ########################
+  - variable:       chl1_east                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll1_in_sea_water
+    long_name:      small phytoplankton chlorophyll eastern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll1 eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iChl1)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl1_west                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll1_in_sea_water
+    long_name:      small phytoplankton chlorophyll western boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyl1l western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iChl1)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl1_south                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll1_in_sea_water
+    long_name:      small phytoplankton chlorophyll southern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll1 southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iChl1)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl1_north                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll1_in_sea_water
+    long_name:      small phytoplankton chlorophyll northern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll1 northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iChl1)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl2_east                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll2_in_sea_water
+    long_name:      diatom chlorophyll eastern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll2 eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iChl2)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl2_west                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll2_in_sea_water
+    long_name:      diatom chlorophyll western boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyl12 western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iChl2)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl2_south                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll2_in_sea_water
+    long_name:      diatom chlorophyll southern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll2 southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iChl2)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl2_north                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll2_in_sea_water
+    long_name:      diatom chlorophyll northern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll2 northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iChl2)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       habphytoplankton_east                                      # Input
+    standard_name:  mole_concentration_of_hab_phytoplankton_expressed_as_nitrogen_in_sea_water
+    long_name:      habphytoplankton eastern boundary condition
+    units:          millimole_nitrogen meter-3                       # [millimole/m3]
+    field:          habphytoplankton eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iHphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       habphytoplankton_west                                      # Input
+    standard_name:  mole_concentration_of_hab_phytoplankton_expressed_as_nitrogen_in_sea_water
+    long_name:      habphytoplankton western boundary condition
+    units:          millimole_nitrogen meter-3                       # [millimole/m3]
+    field:          habphytoplankton western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iHphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       habphytoplankton_south                                     # Input
+    standard_name:  mole_concentration_of_hab_phytoplankton_expressed_as_nitrogen_in_sea_water
+    long_name:      habphytoplankton southern boundary condition
+    units:          millimole_nitrogen meter-3                       # [millimole/m3]
+    field:          habphytoplankton southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iHphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       habphytoplankton_north                                     # Input
+    standard_name:  mole_concentration_of_hab_phytoplankton_expressed_as_nitrogen_in_sea_water
+    long_name:      habphytoplankton northern boundary condition
+    units:          millimole_nitrogen meter-3                       # [millimole/m3]
+    field:          habphytoplankton northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iHphy)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl3_east                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll3_in_sea_water
+    long_name:      HAB phytoplankton chlorophyll eastern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll3 eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iChl3)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl3_west                                        # Input
+    standard_name:  mole_concentration_of_chlorophyll3_in_sea_water
+    long_name:      HAB phytoplankton chlorophyll western boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll3 western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iChl3)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl3_south                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll3_in_sea_water
+    long_name:      HAB phytoplankton chlorophyll southern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll3 southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iChl3)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+
+  - variable:       chl3_north                                       # Input
+    standard_name:  mole_concentration_of_chlorophyll3_in_sea_water
+    long_name:      HAB phytoplankton chlorophyll northern boundary condition
+    units:          milligram meter-3                                # [milligram/m3]
+    field:          chlorophyll3 northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iChl3)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
   ########################
   ###  Red Tide Model  ###
   ########################

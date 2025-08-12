@@ -725,13 +725,16 @@
       integer, parameter :: a3dvar = 10        ! 3D aquatic plants
       integer, parameter :: b3dvar = 11        ! 3D BED-sediment
       integer, parameter :: l3dvar = 12        ! 3D spectral light
-      integer, parameter :: l4dvar = 13        ! 4D spectral light
+      integer, parameter :: l4dvar = 13        ! 4D spectral light 
       integer, parameter :: r2dobc = 14        ! 2D OBC RHO-variable
       integer, parameter :: u2dobc = 15        ! 2D OBC U-variable
       integer, parameter :: v2dobc = 16        ! 2D OBC V-variable
       integer, parameter :: r3dobc = 17        ! 3D OBC RHO-variable
       integer, parameter :: u3dobc = 18        ! 3D OBC U-variable
       integer, parameter :: v3dobc = 19        ! 3D OBC V-variable
+# if defined BIO_UMAINE15 && defined SEDBIO
+      integer, parameter :: bs3dvar = 20       ! 3D sedbio variable
+# endif
 !
       CONTAINS
 !

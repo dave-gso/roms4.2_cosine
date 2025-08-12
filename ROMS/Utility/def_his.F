@@ -18,6 +18,13 @@
       USE mod_parallel
 #ifdef BIOLOGY
       USE mod_biology
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+      USE sedbio_output_mod,     ONLY : sedbio_def_nf90
+#  if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod,     ONLY : sedbio_def_pio
+#  endif
+# endif
 #endif
 #ifdef FOUR_DVAR
       USE mod_fourdvar
@@ -148,6 +155,9 @@
 #ifdef SOLVE3D
 # ifdef SEDIMENT
       integer :: b3dgrd(4)
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bs3dgrd(4)
 # endif
 # if defined VEGETATION 
       integer :: sapgrd(4)
@@ -338,6 +348,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, HIS(ng)%ncid, ncname, 'nspc',         &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
 #endif
 
         status=def_dim(ng, model, HIS(ng)%ncid, ncname, 'boundary',     &
@@ -517,6 +532,20 @@
         b3dgrd(2)=DimIDs( 5)
         b3dgrd(3)=DimIDs(16)
         b3dgrd(4)=DimIDs(12)
+#  endif
+# endif
+!
+! Define dimension vector for sediment POM class type variables.
+# if defined BIO_UMAINE15 && defined SEDBIO
+#  if defined WRITE_WATER && defined MASKING
+        bs3dgrd(1)=DimIDs(17)
+        bs3dgrd(2)=DimIDs(36)
+        bs3dgrd(3)=DimIDs(12)
+#  else
+        bs3dgrd(1)=DimIDs( 1)
+        bs3dgrd(2)=DimIDs( 5)
+        bs3dgrd(3)=DimIDs(36)
+        bs3dgrd(4)=DimIDs(12)
 #  endif
 # endif
 #endif
@@ -1522,7 +1551,69 @@
      &                   NF_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
-
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient
+!
+        IF (Hout(idkdPAR,ng)) THEN
+          Vinfo( 1)=Vname(1,idkdPAR)
+          Vinfo( 2)=Vname(2,idkdPAR)
+          Vinfo( 3)=Vname(3,idkdPAR)
+          Vinfo(14)=Vname(4,idkdPAR)
+          Vinfo(16)=Vname(1,idtime)
+# if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+# endif
+          Vinfo(21)=Vname(6,idkdPAR)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idkdPAR,ng),r8)
+          status=def_var(ng, model, HIS(ng)%ncid, HIS(ng)%Vid(idkdPAR), &
+     &                   NF_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+!
+!  Define CO2 surface flux
+!
+        IF (Hout(idfgCO2,ng)) THEN
+          Vinfo( 1)=Vname(1,idfgCO2)
+          Vinfo( 2)=Vname(2,idfgCO2)
+          Vinfo( 3)=Vname(3,idfgCO2)
+          Vinfo(14)=Vname(4,idfgCO2)
+          Vinfo(16)=Vname(1,idtime)
+#  if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#  endif
+          Vinfo(21)=Vname(6,idfgCO2)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idfgCO2,ng),r8)
+!          Aval(5)=REAL(r2dvar,r8)
+          status=def_var(ng, model, HIS(ng)%ncid, HIS(ng)%Vid(idfgCO2),  &
+     &                   NF_FOUT, nvd3, t2dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+!
+!  Define surface pCO2
+!
+        IF (Hout(idpCO2s,ng)) THEN
+          Vinfo( 1)=Vname(1,idpCO2s)
+          Vinfo( 2)=Vname(2,idpCO2s)
+          Vinfo( 3)=Vname(3,idpCO2s)
+          Vinfo(14)=Vname(4,idpCO2s)
+          Vinfo(16)=Vname(1,idtime)
+#  if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#  endif
+          Vinfo(21)=Vname(6,idpCO2s)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idpCO2s,ng),r8)
+!          Aval(5)=REAL(r2dvar,r8)
+          status=def_var(ng, model, HIS(ng)%ncid, HIS(ng)%Vid(idpCO2s),  &
+     &                   NF_FOUT, nvd3, t2dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+# endif
 # ifdef LMD_SKPP
 !
 !  Define depth of surface boundary layer.
@@ -2181,6 +2272,16 @@
         CALL wec_def_nf90 (ng, model, ldef, Hout, HIS,                  &
      &                     t2dgrd, u2dgrd, v2dgrd,                      &
      &                     t3dgrd, u3dgrd, v3dgrd, w3dgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_nf90 (ng, model, ldef, Hout, HIS,           &
+     &                            bs3dgrd, t2dgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
 !
@@ -3082,6 +3183,15 @@
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
 
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Scan sediment biology model variables from input NetCDF
+!  and activate switches for history variables. Ger variable IDs.
+!
+        CALL sedbio_def_nf90 (ng, model, ldef, Hout, HIS)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
+
 #if defined WEC_VF && defined SOLVE3D
 !
 !  Scan Waves Effect on Currents variables from input NetCDF and
@@ -3152,6 +3262,9 @@
 # ifdef SOLVE3D
 #  ifdef SEDIMENT
       integer :: b3dgrd(4)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bs3dgrd(4)
 #  endif
 #  if defined VEGETATION 
       integer :: sapgrd(4)
@@ -3344,6 +3457,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, HIS(ng)%pioFile, ncname, 'nspc',      &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 # endif
 
         status=def_dim(ng, model, HIS(ng)%pioFile, ncname, 'boundary',  &
@@ -3523,6 +3641,20 @@
         b3dgrd(2)=DimIDs( 5)
         b3dgrd(3)=DimIDs(16)
         b3dgrd(4)=DimIDs(12)
+#   endif
+#  endif
+!
+! Define dimension vector for sediment POM class type variables.
+#  if defined BIO_UMAINE15 && defined SEDBIO
+#   if defined WRITE_WATER && defined MASKING
+        bs3dgrd(1)=DimIDs(24)
+        bs3dgrd(2)=DimIDs(36)
+        bs3dgrd(3)=DimIDs(12)
+#   else
+        bs3dgrd(1)=DimIDs( 1)
+        bs3dgrd(2)=DimIDs( 5)
+        bs3dgrd(3)=DimIDs(36)
+        bs3dgrd(4)=DimIDs(12)
 #   endif
 #  endif
 # endif
@@ -4722,7 +4854,81 @@
      &                   PIO_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient
+!
+        IF (Hout(idkdPAR,ng)) THEN
+          Vinfo( 1)=Vname(1,idkdPAR)
+          Vinfo( 2)=Vname(2,idkdPAR)
+          Vinfo( 3)=Vname(3,idkdPAR)
+          Vinfo(14)=Vname(4,idkdPAR)
+          Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#   endif
+          Vinfo(21)=Vname(6,idkdPAR)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idkdPAR,ng),r8)
+          HIS(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
+          HIS(ng)%pioVar(idkdPAR)%gtype=r3dvar
+!
+          status=def_var(ng, model, HIS(ng)%pioFile,                    &
+     &                   HIS(ng)%pioVar(idkdPAR)%vd,                    &
+     &                   PIO_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Define CO2 surface flux
+!
+        IF (Hout(idfgCO2,ng)) THEN
+          Vinfo( 1)=Vname(1,idfgCO2)
+          Vinfo( 2)=Vname(2,idfgCO2)
+          Vinfo( 3)=Vname(3,idfgCO2)
+          Vinfo(14)=Vname(4,idfgCO2)
+          Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#   endif
+          Vinfo(21)=Vname(6,idfgCO2)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idfgCO2,ng),r8)
+!          Aval(5)=REAL(r2dvar,r8)
+          HIS(ng)%pioVar(idfgCO2)%dkind=PIO_FOUT
+          HIS(ng)%pioVar(idfgCO2)%gtype=r2dvar
+!
+          status=def_var(ng, model, HIS(ng)%pioFile,                    &
+     &                   HIS(ng)%pioVar(idfgCO2)%vd,                    &
+     &                   PIO_FOUT, nvd3, t2dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+!
+!  Define surface pCO2
+!
+        IF (Hout(idpCO2s,ng)) THEN
+          Vinfo( 1)=Vname(1,idpCO2s)
+          Vinfo( 2)=Vname(2,idpCO2s)
+          Vinfo( 3)=Vname(3,idpCO2s)
+          Vinfo(14)=Vname(4,idpCO2s)
+          Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#   endif
+          Vinfo(21)=Vname(6,idpCO2s)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idpCO2s,ng),r8)
+!          Aval(5)=REAL(r2dvar,r8)
+          HIS(ng)%pioVar(idpCO2s)%dkind=PIO_FOUT
+          HIS(ng)%pioVar(idpCO2s)%gtype=r2dvar
+!
+          status=def_var(ng, model, HIS(ng)%pioFile,                    &
+     &                   HIS(ng)%pioVar(idpCO2s)%vd,                    &
+     &                   PIO_FOUT, nvd3, t2dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #  ifdef LMD_SKPP
 !
 !  Define depth of surface boundary layer.
@@ -5495,6 +5701,16 @@
         CALL wec_def_pio (ng, model, ldef, Hout, HIS,                   &
      &                    t2dgrd, u2dgrd, v2dgrd,                       &
      &                    t3dgrd, u3dgrd, v3dgrd, w3dgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_pio (ng, model, ldef, Hout, HIS,                &
+     &                            bs3dgrd, t2dgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 !
@@ -6532,6 +6748,14 @@
 !  and activate switches for history variables. Ger variable IDs.
 !
         CALL vegetation_def_pio (ng, model, ldef, Hout, HIS)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Scan sediment biology model variables from input NetCDF
+!  and activate switches for history variables. Ger variable IDs.
+!
+        CALL sedbio_def_pio (ng, model, ldef, Hout, HIS)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 

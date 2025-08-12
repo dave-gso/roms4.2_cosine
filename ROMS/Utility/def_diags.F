@@ -19,6 +19,9 @@
       USE mod_parallel
 # ifdef BIOLOGY
       USE mod_biology
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+#  endif
 # endif
 # ifdef FOUR_DVAR
       USE mod_fourdvar
@@ -117,6 +120,9 @@
 # ifdef SOLVE3D
 #  ifdef SEDIMENT
       integer :: b3dgrd(4)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bs3dgrd(4)
 #  endif
       integer :: t3dgrd(4), u3dgrd(4), v3dgrd(4), w3dgrd(4)
 # endif
@@ -285,6 +291,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, iNLM, DIA(ng)%ncid, ncname, 'nspc',          &
+     &                 nspc, DimIDs(36))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 # endif
 
         status=def_dim(ng, iNLM, DIA(ng)%ncid, ncname, 'boundary',      &
@@ -403,6 +414,18 @@
         b3dgrd(2)=DimIDs( 5)
         b3dgrd(3)=DimIDs(16)
         b3dgrd(4)=DimIDs(12)
+#   endif
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+#   if defined WRITE_WATER && defined MASKING
+        bs3dgrd(1)=DimIDs(24)
+        bs3dgrd(2)=DimIDs(36)
+        bs3dgrd(2)=DimIDs(12)
+#   else
+        bs3dgrd(1)=DimIDs( 1)
+        bs3dgrd(2)=DimIDs( 5)
+        bs3dgrd(3)=DimIDs(36)
+        bs3dgrd(4)=DimIDs(12)
 #   endif
 #  endif
 #  if defined ECOSIM && defined DIAGNOSTICS_BIO
@@ -597,7 +620,8 @@
 # endif
 
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+      defined BIO_UMAINE15
 !
 !  Define 2D biological diagnostic fields.
 !
@@ -621,7 +645,7 @@
           END IF
         END DO
 #  endif
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
 !
 !  Define 3D biological diagnostic fields.
 !
@@ -787,7 +811,8 @@
           END DO
 # endif
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+      defined BIO_UMAINE15
           DO ivar=1,NDbio2d
             ifield=iDbio2(ivar)
             IF (TRIM(var_name(i)).eq.TRIM(Vname(1,ifield))) THEN
@@ -796,7 +821,7 @@
             END IF
           END DO
 #  endif
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
           DO ivar=1,NDbio3d
             ifield=iDbio3(ivar)
             IF (TRIM(var_name(i)).eq.TRIM(Vname(1,ifield))) THEN
@@ -881,7 +906,8 @@
         END DO
 # endif
 # ifdef DIAGNOSTICS_BIO
-#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#  if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+      defined BIO_UMAINE15
         DO ivar=1,NDbio2d
           ifield=iDbio2(ivar)
           IF (.not.got_var(ifield).and.Dout(ifield,ng)) THEN
@@ -892,7 +918,7 @@
           END IF
         END DO
 #  endif
-#  if defined BIO_FENNEL || defined ECB
+#  if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
         DO ivar=1,NDbio3d
           ifield=iDbio3(ivar)
           IF (.not.got_var(ifield).and.Dout(ifield,ng)) THEN
@@ -998,6 +1024,9 @@
 #   ifdef SEDIMENT
       integer :: b3dgrd(4)
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bs3dgrd(4)
+#  endif
       integer :: t3dgrd(4), u3dgrd(4), v3dgrd(4), w3dgrd(4)
 #  endif
 !
@@ -1165,6 +1194,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, iNLM, DIA(ng)%pioFile, ncname, 'nspc',          &
+     &                 nspc, DimIDs(36))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#   endif
 #  endif
 
         status=def_dim(ng, iNLM, DIA(ng)%pioFile, ncname, 'boundary',   &
@@ -1285,6 +1319,18 @@
         b3dgrd(4)=DimIDs(12)
 #    endif
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+#   if defined WRITE_WATER && defined MASKING
+        bs3dgrd(1)=DimIDs(24)
+        bs3dgrd(2)=DimIDs(36)
+        bs3dgrd(2)=DimIDs(12)
+#   else
+        bs3dgrd(1)=DimIDs( 1)
+        bs3dgrd(2)=DimIDs( 5)
+        bs3dgrd(3)=DimIDs(36)
+        bs3dgrd(4)=DimIDs(12)
+#   endif
+#  endif
 #   if defined ECOSIM && defined DIAGNOSTICS_BIO
 !
 !  Define dimension vector for spectral light type variables.
@@ -1507,7 +1553,8 @@
 #  endif
 
 #  ifdef DIAGNOSTICS_BIO
-#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+       defined BIO_UMAINE15
 !
 !  Define 2D biological diagnostic fields.
 !
@@ -1535,7 +1582,7 @@
           END IF
         END DO
 #   endif
-#   if defined BIO_FENNEL || defined ECB
+#   if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
 !
 !  Define 3D biological diagnostic fields.
 !
@@ -1726,7 +1773,8 @@
           END DO
 #  endif
 #  ifdef DIAGNOSTICS_BIO
-#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+       defined BIO_UMAINE15
           DO ivar=1,NDbio2d
             ifield=iDbio2(ivar)
             IF (TRIM(var_name(i)).eq.TRIM(Vname(1,ifield))) THEN
@@ -1737,7 +1785,7 @@
             END IF
           END DO
 #   endif
-#   if defined BIO_FENNEL || defined ECB
+#   if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
           DO ivar=1,NDbio3d
             ifield=iDbio3(ivar)
             IF (TRIM(var_name(i)).eq.TRIM(Vname(1,ifield))) THEN
@@ -1828,7 +1876,8 @@
         END DO
 #  endif
 #  ifdef DIAGNOSTICS_BIO
-#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM
+#   if defined BIO_FENNEL || defined ECB || defined HYPOXIA_SRM || \
+       defined BIO_UMAINE15
         DO ivar=1,NDbio2d
           ifield=iDbio2(ivar)
           IF (.not.got_var(ifield).and.Dout(ifield,ng)) THEN
@@ -1839,7 +1888,7 @@
           END IF
         END DO
 #   endif
-#   if defined BIO_FENNEL || defined ECB
+#   if defined BIO_FENNEL || defined ECB || defined BIO_UMAINE15
         DO ivar=1,NDbio3d
           ifield=iDbio3(ivar)
           IF (.not.got_var(ifield).and.Dout(ifield,ng)) THEN

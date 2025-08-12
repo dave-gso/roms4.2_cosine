@@ -79,9 +79,9 @@
      &                           initialize_sedbed
 #endif
 #ifdef SEDBIO
-      USE mod_sedbio,     ONLY : allocate_sedbio_arrays,                &
-     &                           deallocate_sedbio_arrays,              &
-     &                           initialize_sedbio_arrays
+      USE mod_sedbio,     ONLY : allocate_sedbio,                &
+     &                           deallocate_sedbio,              &
+     &                           initialize_sedbio
 #endif
 #if defined SEDIMENT && defined SED_FLOCS
       USE mod_sedflocs,   ONLY : allocate_sedflocs,                     &
@@ -216,7 +216,7 @@
           CALL allocate_sedbed (ng, LBi, UBi, LBj, UBj)
 #endif
 #ifdef SEDBIO
-          CALL allocate_sedbio_arrays(ng, LBi, UBi, LBj, UBj)
+          CALL allocate_sedbio(ng, LBi, UBi, LBj, UBj)
 #endif
 #if defined SEDIMENT && defined SED_FLOCS
           CALL allocate_sedflocs (ng, LBi, UBi, LBj, UBj)
@@ -334,7 +334,7 @@
         CALL deallocate_sedbed (ng)
 #endif
 #ifdef SEDBIO
-        CALL deallocate_sedbio_arrays (ng)
+        CALL deallocate_sedbio (ng)
 #endif
 #if defined SEDIMENT && defined SED_FLOCS
 !       CALL deallocate_sedflocs (ng)
@@ -457,7 +457,7 @@
           CALL initialize_sedbed (ng, tile, model)
 #endif
 #ifdef SEDBIO
-          CALL initialize_sedbio_arrays(ng, tile, model)
+          CALL initialize_sedbio(ng, tile, model)
 #endif
 #if defined SEDIMENT && defined SED_FLOCS
             CALL initialize_sedflocs (ng, tile, model)

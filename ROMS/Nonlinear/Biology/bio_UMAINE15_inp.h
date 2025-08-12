@@ -2,9 +2,9 @@
 !
 !=======================================================================
 !                                                                      !
-!  This routine reads in biological model input parameters.            !
+!  This routine reads in UMAINE15 (CoSiNE) model input parameters.     !
 !                                                                      !
-!  By: PENG XIU 12/2013                                                !
+!  By: PENG XIU 12/2013, Dave Ullman 7/2025                            !
 !=======================================================================
 !
       USE mod_param
@@ -28,26 +28,24 @@
 !
 !  Local variable declarations.
 !
-      logical :: find_file
-      integer :: Npts, Nval, i, itrc, ng, status
-
-      integer :: igrid, itracer,iTrcStr, iTrcEnd,nline,ifield
-      
-      integer :: decode_line, load_i, load_l, load_r,load_lbc
+      integer :: Npts, Nval
+      integer :: iTrcStr, iTrcEnd
+      integer :: i, ifield, igrid, itracer, itrc, ng, nline, status
 
       logical, dimension(Ngrids) :: Lbio
       logical, dimension(NBT,Ngrids) :: Ltrc
 
       real(r8), dimension(NBT,Ngrids) :: Rbio
 
-      real(r8), dimension(100) :: Rval
+      real(dp), dimension(nRval) :: Rval
 
-      character (len=1  ), parameter :: blank = ' '
       character (len=40 ) :: KeyWord
       character (len=256) :: line
-!     character (len=256), dimension(100) :: Cval
-      character (len=256), dimension(200) :: Cval
+      character (len=256), dimension(nCval) :: Cval
+      character (len= 1), parameter :: blank = ' '
       character (len=256) :: fname
+      character (len=*), parameter :: MyFile =                          &
+     &  __FILE__
 !
 !-----------------------------------------------------------------------
 !  Initialize.
@@ -272,7 +270,7 @@
             bsedparnam=TRIM(ADJUSTL(Cval(Nval)))
 #endif
           CASE('TNU2') 
-            Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
             DO ng=1,Ngrids
               DO itrc=1,NBT
                 i=idbio(itrc)
@@ -280,7 +278,7 @@
               END DO
             END DO
           CASE('TNU4') 
-            Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
             DO ng=1,Ngrids
               DO itrc=1,NBT
                 i=idbio(itrc)
@@ -288,40 +286,102 @@
               END DO
             END DO
           CASE ('ad_TNU2')
-              Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
-              DO ng=1,Ngrids
-                DO itrc=1,NBT
-                  i=idbio(itrc)
-                  ad_tnu2(i,ng)=Rbio(itrc,ng)
-                  tl_tnu2(i,ng)=Rbio(itrc,ng)
-                END DO
-              END DO
-            CASE ('ad_TNU4')
-              Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
-              DO ng=1,Ngrids
-                DO itrc=1,NBT
-                  i=idbio(itrc)
-                  ad_tnu4(i,ng)=Rbio(itrc,ng)
-                  tl_tnu4(i,ng)=Rbio(itrc,ng)
-                END DO
-              END DO
+		Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
+		DO ng=1,Ngrids
+		  DO itrc=1,NBT
+		    i=idbio(itrc)
+		    ad_tnu2(i,ng)=Rbio(itrc,ng)
+		    tl_tnu2(i,ng)=Rbio(itrc,ng)
+		  END DO
+		END DO
+	    CASE ('ad_TNU4')
+		Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
+		DO ng=1,Ngrids
+		  DO itrc=1,NBT
+		    i=idbio(itrc)
+		    ad_tnu4(i,ng)=Rbio(itrc,ng)
+		    tl_tnu4(i,ng)=Rbio(itrc,ng)
+		  END DO
+		END DO
+	    CASE ('LtracerSponge')
+		Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+		DO ng=1,Ngrids
+		  DO itrc=1,NBT
+		    i=idbio(itrc)
+		    LtracerSponge(i,ng)=Ltrc(itrc,ng)
+		  END DO
+		END DO
           CASE('AKT_BAK') 
-            Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
             DO ng=1,Ngrids
               DO itrc=1,NBT
                 i=idbio(itrc)
                 Akt_bak(i,ng)=Rbio(itrc,ng)
               END DO
             END DO
+	    CASE ('ad_AKT_fac')
+		Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
+		DO ng=1,Ngrids
+		  DO itrc=1,NBT
+		    i=idbio(itrc)
+		    ad_Akt_fac(i,ng)=Rbio(itrc,ng)
+		    tl_Akt_fac(i,ng)=Rbio(itrc,ng)
+		  END DO
+		END DO
           CASE('TNUDG') 
-            Npts=load_r(Nval, Rval, NBT*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, NBT, Ngrids, Rbio)
             DO ng=1,Ngrids
               DO itrc=1,NBT
                 i=idbio(itrc)
                 Tnudg(i,ng)=Rbio(itrc,ng)
               END DO
             END DO
-            
+          CASE ('Hadvection')
+		IF (itracer.lt.NBT) THEN
+		  itracer=itracer+1
+		ELSE
+		  itracer=1                      ! next nested grid
+		END IF
+		itrc=idbio(itracer)
+		Npts=load_tadv(Nval, Cval, line, nline, itrc, igrid,        &
+     &                       itracer, idbio(iTrcStr), idbio(iTrcEnd),   &
+     &                       Vname(1,idTvar(itrc)),                     &
+     &                       Hadvection)
+	    CASE ('Vadvection')
+	  	IF (itracer.lt.NBT) THEN
+		  itracer=itracer+1
+		ELSE
+		  itracer=1                      ! next nested grid
+		END IF
+		itrc=idbio(itracer)
+		Npts=load_tadv(Nval, Cval, line, nline, itrc, igrid,        &
+     &                       itracer, idbio(iTrcStr), idbio(iTrcEnd),   &
+     &                       Vname(1,idTvar(itrc)),                     &
+     &                       Vadvection)
+#if defined ADJOINT || defined TANGENT || defined TL_IOMS
+            CASE ('ad_Hadvection')
+              IF (itracer.lt.NBT) THEN
+                itracer=itracer+1
+              ELSE
+                itracer=1                      ! next nested grid
+              END IF
+              itrc=idbio(itracer)
+              Npts=load_tadv(Nval, Cval, line, nline, itrc, igrid,      &
+     &                       itracer, idbio(iTrcStr), idbio(iTrcEnd),   &
+     &                       Vname(1,idTvar(itrc)),                     &
+     &                       ad_Hadvection)
+            CASE ('Vadvection')
+              IF (itracer.lt.(NBT) THEN
+                itracer=itracer+1
+              ELSE
+                itracer=1                      ! next nested grid
+              END IF
+              itrc=idbio(itracer)
+              Npts=load_tadv(Nval, Cval, line, nline, itrc, igrid,      &
+     &                       itracer, idbio(iTrcStr), idbio(iTrcEnd),   &
+     &                       Vname(1,idTvar(itrc)),                     &
+     &                       ad_Vadvection)
+#endif     
             CASE ('LBC(isTvar)')
               IF (itracer.lt.NBT) THEN
                 itracer=itracer+1
@@ -330,7 +390,7 @@
               END IF
               ifield=isTvar(idbio(itracer))
               Npts=load_lbc(Nval, Cval, line, nline, ifield, igrid,    &
-     &                      iTrcStr, iTrcEnd,                          &
+     &                      idbio(iTrcStr), idbio(iTrcEnd),            &
      &                      Vname(1,idTvar(idbio(itracer))), LBC)
 #if defined ADJOINT || defined TANGENT || defined TL_IOMS
             CASE ('ad_LBC(isTvar)')
@@ -341,29 +401,35 @@
               END IF
               ifield=isTvar(idbio(itracer))
               Npts=load_lbc(Nval, Cval, line, nline, ifield, igrid,    &
-     &                      iTrcStr, iTrcEnd,                          &
+     &                      idbio(iTrcStr), idbio(iTrcEnd),            &
      &                      Vname(1,idTvar(idbio(itracer))), ad_LBC)
 #endif
-#ifdef TCLIMATOLOGY
-            CASE ('LtracerCLM')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
-              DO ng=1,Ngrids
-                DO itrc=1,NBT
-                  i=idbio(itrc)
-                  LtracerCLM(i,ng)=Ltrc(itrc,ng)
-                END DO
-              END DO
-#endif
             CASE ('LtracerSrc')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idbio(itrc)
                   LtracerSrc(i,ng)=Ltrc(itrc,ng)
                 END DO
               END DO
+            CASE ('LtracerCLM')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idbio(itrc)
+                  LtracerCLM(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
+            CASE ('LnudgeTCLM')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idbio(itrc)
+                  LnudgeTCLM(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
             CASE ('Hout(idTvar)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idTvar(idbio(itrc))
@@ -376,8 +442,22 @@
                   Hout(i,ng)=Ltrc(itrc,ng)
                 END DO
               END DO
+		CASE ('Hout(idzslT)')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idzslT(idbio(itrc))
+                  IF (i.eq.0) THEN
+                    IF (Master) WRITE (out,30)                          &
+     &                                'idzslT(idbio(', itrc, '))'
+                    exit_flag=5
+                    RETURN
+                  END IF
+                  Hout(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
             CASE ('Hout(idTsur)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idTsur(idbio(itrc))
@@ -388,6 +468,44 @@
                     RETURN
                   END IF
                   Hout(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
+		CASE ('Qout(idTvar)')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idTvar(idbio(itrc))
+                  Qout(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
+            CASE ('Qout(idzslT)')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idzslT(idbio(itrc))
+                  Qout(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
+            CASE ('Qout(idsurT)')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idsurT(idbio(itrc))
+                  IF (i.eq.0) THEN
+                    IF (Master) WRITE (out,30)                          &
+     &                                'idsurT(idbio(', itrc, '))'
+                    exit_flag=5
+                    RETURN
+                  END IF
+                  Qout(i,ng)=Ltrc(itrc,ng)
+                END DO
+              END DO
+		CASE ('Qout(idTsur)')
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
+              DO ng=1,Ngrids
+                DO itrc=1,NBT
+                  i=idTsur(idbio(itrc))
+                  Qout(i,ng)=Ltrc(itrc,ng)
                 END DO
               END DO
 #ifdef OPTICS_OP1
@@ -422,7 +540,7 @@
    (defined RP_AVERAGES && defined TL_IOMS) || \
    (defined TL_AVERAGES && defined TANGENT)
             CASE ('Aout(idTvar)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idTvar(idbio(itrc))
@@ -430,7 +548,7 @@
                 END DO
               END DO
             CASE ('Aout(idTTav)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT,Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idTTav(idbio(itrc))
@@ -438,7 +556,7 @@
                 END DO
               END DO
             CASE ('Aout(idUTav)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT,Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idUTav(idbio(itrc))
@@ -446,7 +564,7 @@
                 END DO
               END DO
             CASE ('Aout(idVTav)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT,Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=idVTav(idbio(itrc))
@@ -454,7 +572,7 @@
                 END DO
               END DO
             CASE ('Aout(iHUTav)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT,Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=iHUTav(idbio(itrc))
@@ -462,7 +580,7 @@
                 END DO
               END DO
             CASE ('Aout(iHVTav)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT,Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO itrc=1,NBT
                   i=iHVTav(idbio(itrc))
@@ -472,7 +590,7 @@
 #endif
 #ifdef DIAGNOSTICS_TS
             CASE ('Dout(iTrate)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -480,7 +598,7 @@
                 END DO
               END DO
             CASE ('Dout(iThadv)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -488,7 +606,7 @@
                 END DO
               END DO
             CASE ('Dout(iTxadv)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -496,7 +614,7 @@
                 END DO
               END DO
             CASE ('Dout(iTyadv)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -504,7 +622,7 @@
                 END DO
               END DO
             CASE ('Dout(iTvadv)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -513,7 +631,7 @@
               END DO
 # if defined TS_DIF2 || defined TS_DIF4
             CASE ('Dout(iThdif)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -521,7 +639,7 @@
                 END DO
               END DO
             CASE ('Dout(iTxdif)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -529,7 +647,7 @@
                 END DO
               END DO
             CASE ('Dout(iTydif)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -538,7 +656,7 @@
               END DO
 #  if defined MIX_GEO_TS || defined MIX_ISO_TS
             CASE ('Dout(iTsdif)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -548,7 +666,7 @@
 #  endif
 # endif
             CASE ('Dout(iTvdif)')
-              Npts=load_l(Nval, Cval, NBT*Ngrids, Ltrc)
+              Npts=load_l(Nval, Cval, NBT, Ngrids, Ltrc)
               DO ng=1,Ngrids
                 DO i=1,NBT
                   itrc=idbio(i)
@@ -1016,15 +1134,15 @@
      &            'Q10 for nitrification [nondimensional]' 
 
 #ifdef SEDBIO
-            fname=bsedparnam
-            IF (.not.find_file(ng, fname, 'BSEDPOSNAM')) THEN
-                IF (MASTER) WRITE(out,270) TRIM(fname)
-                exit_flag=4
-                RETURN
-            ELSE
-                WRITE (out,230) ' Sediment Biology Parameters File: ', &
-     &                    TRIM(fname)
-            END IF
+!	  fname=bsedparnam
+	  IF (.not.find_file(1, out, bsedparnam,'BSEDPARNAM')) THEN
+	    IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+	  ELSE
+	    IF (Master.and.Lwrite) THEN
+	      WRITE (out,230) ' Sediment Biology Parameters File: ', &
+     &                    TRIM(bsedparnam)
+	    END IF
+	  END IF
 #endif
 #ifdef OPTICS_OP1
             WRITE (out,110) optic_upd_fac(ng), 'optic_upd_fac',        &

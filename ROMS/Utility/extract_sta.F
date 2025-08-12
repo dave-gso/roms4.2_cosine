@@ -878,6 +878,103 @@
           END IF
         END DO
       END IF
+!
+!-----------------------------------------------------------------------
+!  Interpolate from 3D field at sediment biology RHO-points.
+!  here, the 3rd dimension is nspc
+!-----------------------------------------------------------------------
+!
+      IF (gtype.eq.bs3dvar) THEN
+        Xmin=rXmin(ng)
+        Xmax=rXmax(ng)
+        Ymin=rYmin(ng)
+        Ymax=rYmax(ng)
+        DO np=1,Npos
+          Xgrd=Xpos(np)
+          Ygrd=Ypos(np)
+          Zgrd=Zpos(np)
+          bounded(np)=0.0_r8
+          IF (((Xmin.le.Xgrd).and.(Xgrd.lt.Xmax)).and.                  &
+     &        ((Ymin.le.Ygrd).and.(Ygrd.lt.Ymax))) THEN
+            i1=INT(Xgrd)
+            j1=INT(Ygrd)
+            i2=i1+1
+            j2=j1+1
+            IF (i2.gt.Lm(ng)+1) THEN
+              i2=i1                   ! station at the eastern boundary
+            END IF
+            IF (j2.gt.Mm(ng)+1) THEN
+              j2=j1                   ! station at the northern boundary
+            END IF
+            bounded(np)=1.0_r8
+            p2=REAL(i2-i1,r8)*(Xgrd-REAL(i1,r8))
+            q2=REAL(j2-j1,r8)*(Ygrd-REAL(j1,r8))
+            p1=1.0_r8-p2
+            q1=1.0_r8-q2
+            w111=p1*q1
+            w211=p2*q1
+            w121=p1*q2
+            w221=p2*q2
+            w112=0.0_r8
+            w212=0.0_r8
+            w122=0.0_r8
+            w222=0.0_r8
+!            IF (Zgrd.ge.0.0_r8) THEN
+! this should always be the case for sediment bio POM class-based variables
+              k1=INT(Zgrd)
+              k2=INT(Zgrd)
+              r1=1.0_r8
+              r2=0.0_r8
+!            ELSE
+!              write(*,*)'extract_sta_3d, benthic sediment, Zgrd=',Zgrd,   &
+!     &                   'should be greater than zero'
+!            END IF
+            w112=w111*r2
+            w212=w211*r2
+            w122=w121*r2
+            w222=w221*r2
+            w111=w111*r1
+            w211=w211*r1
+            w121=w121*r1
+            w221=w221*r1
+# ifdef MASKING
+            w111=w111*GRID(ng)%rmask(i1,j1)
+            w211=w211*GRID(ng)%rmask(i2,j1)
+            w121=w121*GRID(ng)%rmask(i1,j2)
+            w221=w221*GRID(ng)%rmask(i2,j2)
+            w112=w112*GRID(ng)%rmask(i1,j1)
+            w212=w212*GRID(ng)%rmask(i2,j1)
+            w122=w122*GRID(ng)%rmask(i1,j2)
+            w222=w222*GRID(ng)%rmask(i2,j2)
+            wsum=w111+w211+w121+w221+w112+w212+w122+w222
+            IF (wsum.gt.0.0_r8) THEN
+              wsum=1.0_r8/wsum
+              w111=w111*wsum
+              w211=w211*wsum
+              w121=w121*wsum
+              w221=w221*wsum
+              w112=w112*wsum
+              w212=w212*wsum
+              w122=w122*wsum
+              w222=w222*wsum
+            ELSE
+              bounded(np)=0.0_r8
+            END IF
+# endif
+            Apos(np)=Ascl*(w111*A(i1,j1,k1)+                            &
+     &                     w211*A(i2,j1,k1)+                            &
+     &                     w121*A(i1,j2,k1)+                            &
+     &                     w221*A(i2,j2,k1)+                            &
+     &                     w112*A(i1,j1,k2)+                            &
+     &                     w212*A(i2,j1,k2)+                            &
+     &                     w122*A(i1,j2,k2)+                            &
+     &                     w222*A(i2,j2,k2))
+            IF (ABS(Apos(np)).eq.0.0_r8) Apos(np)=0.0_r8      ! positive
+          ELSE                                                ! zero
+            Apos(np)=Aspv
+          END IF
+        END DO
+      END IF
 # ifdef DISTRIBUTE
 !
 !-----------------------------------------------------------------------

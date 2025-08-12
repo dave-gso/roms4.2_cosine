@@ -43,6 +43,9 @@
       USE mod_parallel
 #ifdef BIOLOGY
       USE mod_biology
+# ifdef SEDBIO
+      USE mod_sedbio
+# endif
 #endif
 #if defined ICE_MODEL && defined SOLVE3D
       USE mod_ice
@@ -182,6 +185,23 @@
         DO itrc=1,NBT
           get_var(idTvar(idbio(itrc)))=.TRUE.
         END DO
+#  endif
+#  ifdef SEDBIO
+        DO itrc=1,NPOM
+          get_var(idbPM(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NPWC
+          get_var(idbPW(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NDR
+          get_var(idbDR(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NSF
+          get_var(idbSF(itrc))=.TRUE.
+        END DO
+#  endif
+#  ifdef OPTICS_OP1
+        get_var(idkdPAR)=.TRUE.
 #  endif
 # endif
 # if defined T_PASSIVE
@@ -511,6 +531,33 @@
           END IF
         END DO
 # endif
+# ifdef SEDBIO
+        DO itrc=1,NPOM
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbPM(itrc)))) THEN
+            have_var(idbPM(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NPWC
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbPW(itrc)))) THEN
+            have_var(idbPW(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NDR
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbDR(itrc)))) THEN
+            have_var(idbDR(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NSF
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbSF(itrc)))) THEN
+            have_var(idbSF(itrc))=.TRUE.
+          END IF
+        END DO
+# endif
+# ifdef OPTICS_OP1
+        IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            have_var(idkdPAR)=.TRUE.
+        END IF
+# endif
 #endif
       END DO
 !
@@ -814,6 +861,58 @@
         END IF
       END DO
 # endif
+# ifdef SEDBIO
+      DO itrc=1,NPOM
+        IF (.not.have_var(idbPM(itrc)).and.                            &
+     &      get_var(idbPM(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbPM(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NPWC
+        IF (.not.have_var(idbPW(itrc)).and.                            &
+     &      get_var(idbPW(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbPW(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NDR
+        IF (.not.have_var(idbDR(itrc)).and.                            &
+     &      get_var(idbDR(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbDR(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NSF
+        IF (.not.have_var(idbSF(itrc)).and.                            &
+     &      get_var(idbSF(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbSF(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+# endif
+# ifdef OPTICS_OP1
+      IF (.not.have_var(idkdPAR).and.                                 &
+     &      get_var(idkdPAR)) THEN
+        IF (Master) WRITE (stdout,10) string,                         &
+     &                                  TRIM(Vname(1,idkdPAR)),       &
+     &                                  TRIM(ncname)
+        exit_flag=2
+        RETURN
+      END IF
+# endif
 #endif
 !
   10  FORMAT (/,a,'CHECKVARS_NF90 - unable to find model variable: ',a, &
@@ -937,6 +1036,23 @@
           get_var(idTvar(idbio(itrc)))=.TRUE.
         END DO
 #   endif
+#  endif
+#  ifdef SEDBIO
+        DO itrc=1,NPOM
+          get_var(idbPM(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NPWC
+          get_var(idbPW(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NDR
+          get_var(idbDR(itrc))=.TRUE.
+        END DO
+        DO itrc=1,NSF
+          get_var(idbSF(itrc))=.TRUE.
+        END DO
+#  endif
+#  ifdef OPTICS_OP1
+        get_var(idkdPAR)=.TRUE.
 #  endif
 #  if defined T_PASSIVE
 #   if defined ANA_PASSIVE
@@ -1265,6 +1381,33 @@
           END IF
         END DO
 #  endif
+#  ifdef SEDBIO
+        DO itrc=1,NPOM
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbPM(itrc)))) THEN
+            have_var(idbPM(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NPWC
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbPW(itrc)))) THEN
+            have_var(idbPW(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NDR
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbDR(itrc)))) THEN
+            have_var(idbDR(itrc))=.TRUE.
+          END IF
+        END DO
+        DO itrc=1,NSF
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idbSF(itrc)))) THEN
+            have_var(idbSF(itrc))=.TRUE.
+          END IF
+        END DO
+#  endif
+#  ifdef OPTICS_OP1
+        IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            have_var(idkdPAR)=.TRUE.
+        END IF
+#  endif
 # endif
       END DO
 !
@@ -1567,6 +1710,58 @@
           RETURN
         END IF
       END DO
+#  endif
+#  ifdef SEDBIO
+      DO itrc=1,NPOM
+        IF (.not.have_var(idbPM(itrc)).and.                            &
+     &      get_var(idbPM(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbPM(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NPWC
+        IF (.not.have_var(idbPW(itrc)).and.                            &
+     &      get_var(idbPW(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbPW(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NDR
+        IF (.not.have_var(idbDR(itrc)).and.                            &
+     &      get_var(idbDR(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbDR(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+      DO itrc=1,NSF
+        IF (.not.have_var(idbSF(itrc)).and.                            &
+     &      get_var(idbSF(itrc))) THEN
+          IF (Master) WRITE (stdout,10) string,                        &
+     &                                  TRIM(Vname(1,idbSF(itrc))),    &
+     &                                  TRIM(ncname)
+          exit_flag=2
+          RETURN
+        END IF
+      END DO
+#  endif
+#  ifdef OPTICS_OP1
+      IF (.not.have_var(idkdPAR).and.                                 &
+     &      get_var(idkdPAR)) THEN
+        IF (Master) WRITE (stdout,10) string,                         &
+     &                                  TRIM(Vname(1,idkdPAR)),       &
+     &                                  TRIM(ncname)
+        exit_flag=2
+        RETURN
+      END IF
 #  endif
 # endif
 !

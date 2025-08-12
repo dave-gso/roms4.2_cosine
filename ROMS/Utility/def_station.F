@@ -19,6 +19,13 @@
       USE mod_parallel
 # ifdef BIOLOGY
       USE mod_biology
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+      USE sedbio_output_mod,     ONLY : sedbio_def_station_nf90
+#   if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod,     ONLY : sedbio_def_station_pio
+#   endif
+#  endif
 # endif
 # ifdef FOUR_DVAR
       USE mod_fourdvar
@@ -136,6 +143,9 @@
       integer :: itrc
 
       integer :: bgrd(3), rgrd(3), wgrd(3)
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bbgrd(3)
+#  endif
 # endif
 !
       real(r8) :: Aval(6)
@@ -224,6 +234,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, STA(ng)%ncid, ncname, 'nspc',         &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 # endif
 
         status=def_dim(ng, model, STA(ng)%ncid, ncname, 'station' ,     &
@@ -271,6 +286,14 @@
         bgrd(1)=DimIDs(16)
         bgrd(2)=DimIDs(13)
         bgrd(3)=DimIDs(12)
+#  if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Define dimension vector for POM class-based sediment biology variables.
+!
+        bbgrd(1)=DimIDs(36)
+        bbgrd(2)=DimIDs(13)
+        bbgrd(3)=DimIDs(12)
+#  endif
 # endif
 !
 !  Initialize unlimited time record dimension.
@@ -516,7 +539,52 @@
      &                   SetParAccess = .TRUE.)
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient.
+!
+        IF (Sout(idkdPAR,ng)) THEN
+          Vinfo( 1)=Vname(1,idkdPAR)
+          Vinfo( 2)=Vname(2,idkdPAR)
+          Vinfo( 3)=Vname(3,idkdPAR)
+          Vinfo(14)=Vname(4,idkdPAR)
+          Vinfo(16)=Vname(1,idtime)
+          status=def_var(ng, model, STA(ng)%ncid, STA(ng)%Vid(idkdPAR), &
+     &                   NF_FOUT, 3, rgrd, Aval, Vinfo, ncname,         &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Define CO2 surface flux
+!
+        IF (Sout(idfgCO2,ng)) THEN
+          Vinfo( 1)=Vname(1,idfgCO2)
+          Vinfo( 2)=Vname(2,idfgCO2)
+          Vinfo( 3)=Vname(3,idfgCO2)
+          Vinfo(14)=Vname(4,idfgCO2)
+          Vinfo(16)=Vname(1,idtime)
+          status=def_var(ng, model, STA(ng)%ncid, STA(ng)%Vid(idfgCO2),&
+     &                   NF_FOUT, 2, pgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                          &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+        IF (Sout(idpCO2s,ng)) THEN
+          Vinfo( 1)=Vname(1,idpCO2s)
+          Vinfo( 2)=Vname(2,idpCO2s)
+          Vinfo( 3)=Vname(3,idpCO2s)
+          Vinfo(14)=Vname(4,idpCO2s)
+          Vinfo(16)=Vname(1,idtime)
+          status=def_var(ng, model, STA(ng)%ncid, STA(ng)%Vid(idpCO2s),&
+     &                   NF_FOUT, 2, pgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                          &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #  ifdef LMD_SKPP
 !
 !  Define depth of surface boundary layer.
@@ -1024,6 +1092,16 @@
      &                             pgrd, rgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_station_nf90 (ng, model, ldef, Sout, STA,           &
+     &                            bbgrd, pgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
 !
 !-----------------------------------------------------------------------
 !  Leave definition mode.
@@ -1119,6 +1197,19 @@
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idDano))) THEN
             got_var(idDano)=.TRUE.
             STA(ng)%Vid(idDano)=var_id(i)
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            got_var(idkdPAR)=.TRUE.
+            STA(ng)%Vid(idkdPAR)=var_id(i)
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
+            got_var(idfgCO2)=.TRUE.
+            STA(ng)%Vid(idfgCO2)=var_id(i)
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idpCO2s))) THEN
+            got_var(idpCO2s)=.TRUE.
+            STA(ng)%Vid(idpCO2s)=var_id(i)
+#  endif
 #  ifdef LMD_SKPP
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idHsbl))) THEN
             got_var(idHsbl)=.TRUE.
@@ -1316,6 +1407,28 @@
           exit_flag=3
           RETURN
         END IF
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+        IF (.not.got_var(idkdPAR).and.Sout(idkdPAR,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+        IF (.not.got_var(idfgCO2).and.Sout(idfgCO2,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idfgCO2)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+        IF (.not.got_var(idpCO2s).and.Sout(idpCO2s,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idpCO2s)),        &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
 #  ifdef LMD_SKPP
         IF (.not.got_var(idHsbl).and.Sout(idHsbl,ng)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idHsbl)),          &
@@ -1603,6 +1716,9 @@
       integer :: itrc
 
       integer :: bgrd(3), rgrd(3), wgrd(3)
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bbgrd(3)
+#  endif
 #  endif
 !
       real(r8) :: Aval(6)
@@ -1691,6 +1807,11 @@
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, STA(ng)%ncid, ncname, 'nspc',         &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 #  endif
 
         status=def_dim(ng, model, STA(ng)%pioFile, ncname, 'station' ,  &
@@ -1738,6 +1859,14 @@
         bgrd(1)=DimIDs(16)
         bgrd(2)=DimIDs(13)
         bgrd(3)=DimIDs(12)
+#   if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Define dimension vector for POM class-based sediment biology variables.
+!
+        bbgrd(1)=DimIDs(36)
+        bbgrd(2)=DimIDs(13)
+        bbgrd(3)=DimIDs(12)
+#   endif
 #  endif
 !
 !  Initialize unlimited time record dimension.
@@ -2044,7 +2173,64 @@
      &                   SetParAccess = .TRUE.)
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient.
+!
+        IF (Sout(idkdPAR,ng)) THEN
+          Vinfo( 1)=Vname(1,idkdPAR)
+          Vinfo( 2)=Vname(2,idkdPAR)
+          Vinfo( 3)=Vname(3,idkdPAR)
+          Vinfo(14)=Vname(4,idkdPAR)
+          Vinfo(16)=Vname(1,idtime)
+          STA(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
+          STA(ng)%pioVar(idkdPAR)%gtype=0
+!
+          status=def_var(ng, model, STA(ng)%pioFile,                    &
+     &                   STA(ng)%pioVar(idkdPAR)%vd,                    &
+     &                   PIO_FOUT, 3, rgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Define CO2 surface flux
+!
+        IF (Sout(idfgCO2,ng)) THEN
+          Vinfo( 1)=Vname(1,idfgCO2)
+          Vinfo( 2)=Vname(2,idfgCO2)
+          Vinfo( 3)=Vname(3,idfgCO2)
+          Vinfo(14)=Vname(4,idfgCO2)
+          Vinfo(16)=Vname(1,idtime)
+          STA(ng)%pioVar(idfgCO2)%dkind=PIO_FOUT
+          STA(ng)%pioVar(idfgCO2)%gtype=0
+!
+          status=def_var(ng, model, STA(ng)%pioFile,                    &
+     &                   STA(ng)%pioVar(idfgCO2)%vd,                    &
+     &                   PIO_FOUT, 2, pgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+        IF (Sout(idpCO2s,ng)) THEN
+          Vinfo( 1)=Vname(1,idpCO2s)
+          Vinfo( 2)=Vname(2,idpCO2s)
+          Vinfo( 3)=Vname(3,idpCO2s)
+          Vinfo(14)=Vname(4,idpCO2s)
+          Vinfo(16)=Vname(1,idtime)
+          STA(ng)%pioVar(idpCO2s)%dkind=PIO_FOUT
+          STA(ng)%pioVar(idpCO2s)%gtype=0
+!
+          status=def_var(ng, model, STA(ng)%pioFile,                    &
+     &                   STA(ng)%pioVar(idpCO2s)%vd,                    &
+     &                   PIO_FOUT, 2, pgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #   ifdef LMD_SKPP
 !
 !  Define depth of surface boundary layer.
@@ -2626,6 +2812,16 @@
      &                            pgrd, rgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_station_pio (ng, model, ldef, Sout, STA,           &
+     &                            bbgrd, pgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Leave definition mode.
@@ -2747,6 +2943,25 @@
             STA(ng)%pioVar(idDano)%vd=var_desc(i)
             STA(ng)%pioVar(idDano)%dkind=PIO_FOUT
             STA(ng)%pioVar(idDano)%gtype=0
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            got_var(idkdPAR)=.TRUE.
+            STA(ng)%pioVar(idkdPAR)%vd=var_desc(i)
+            STA(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
+            STA(ng)%pioVar(idkdPAR)%gtype=0
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
+            got_var(idfgCO2)=.TRUE.
+            STA(ng)%pioVar(idfgCO2)%vd=var_desc(i)
+            STA(ng)%pioVar(idfgCO2)%dkind=PIO_FOUT
+            STA(ng)%pioVar(idfgCO2)%gtype=0
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idpCO2s))) THEN
+            got_var(idpCO2s)=.TRUE.
+            STA(ng)%pioVar(idpCO2s)%vd=var_desc(i)
+            STA(ng)%pioVar(idpCO2s)%dkind=PIO_FOUT
+            STA(ng)%pioVar(idpCO2s)%gtype=0
+#  endif
 #   ifdef LMD_SKPP
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idHsbl))) THEN
             got_var(idHsbl)=.TRUE.
@@ -2993,6 +3208,28 @@
           exit_flag=3
           RETURN
         END IF
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+        IF (.not.got_var(idkdPAR).and.Sout(idkdPAR,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+        IF (.not.got_var(idfgCO2).and.Sout(idfgCO2,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idfgCO2)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+        IF (.not.got_var(idpCO2s).and.Sout(idpCO2s,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idpCO2s)),        &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
 #   ifdef LMD_SKPP
         IF (.not.got_var(idHsbl).and.Sout(idHsbl,ng)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idHsbl)),          &

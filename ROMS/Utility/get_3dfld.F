@@ -646,6 +646,14 @@
                   ioDesc => ioDesc_sp_b3dvar(ng)
                 END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+              CASE (bs3dvar)
+                IF (KIND(Fout).eq.8) THEN
+                  ioDesc => ioDesc_dp_bs3dvar(ng)
+                ELSE
+                  ioDesc => ioDesc_sp_bs3dvar(ng)
+                END IF
+#  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
               CASE (l3dvar)
                 IF (KIND(Fout).eq.8) THEN

@@ -192,7 +192,9 @@
           Cgrid=1
           Isize=xtr_IOBOUNDS(ng)%xi_psi
           Jsize=xtr_IOBOUNDS(ng)%eta_psi
-        CASE (r2dvar, r3dvar, w3dvar)
+! DU note: adding bs3dvar here even though b3dvar is not
+! (it is in pio routine)
+        CASE (r2dvar, r3dvar, w3dvar, bs3dvar)
           Cgrid=2
           Isize=xtr_IOBOUNDS(ng)%xi_rho
           Jsize=xtr_IOBOUNDS(ng)%eta_rho
@@ -1018,7 +1020,7 @@
           Ie=xtr_IOBOUNDS(ng)%IUB_psi
           Js=xtr_IOBOUNDS(ng)%JLB_psi
           Je=xtr_IOBOUNDS(ng)%JUB_psi
-        CASE (a3dvar, b3dvar, l3dvar, r2dvar, r3dvar, w3dvar)
+        CASE (a3dvar, b3dvar, l3dvar, r2dvar, r3dvar, w3dvar, bs3dvar)
           Cgrid=2                                         ! RHO-points
           Is=xtr_IOBOUNDS(ng)%ILB_rho
           Ie=xtr_IOBOUNDS(ng)%IUB_rho

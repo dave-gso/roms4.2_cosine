@@ -46,8 +46,8 @@
 !    DimIDs(32) => Number of sediment tracers                          !
 !    DimIDs(33) => Number of light spectral bands                      !
 !    DimIDs(34) => Number constant depth slices in 'extract_slice'     !
-!    DimIDs(35) => Number of submerged acuatic vegetation types        !                     
-!                                                                      !
+!    DimIDs(35) => Number of submerged acuatic vegetation types        !
+!    DimIDs(36) => Number of sediment POM classes (for SEDBIO)         !      
 !=======================================================================
 !
       USE mod_param
@@ -124,6 +124,9 @@
 #ifdef SEDIMENT
       integer :: seddim
 #endif
+#ifdef SEDBIO
+      integer :: sedbiodim
+#endif
 #ifdef FOUR_DVAR
       integer :: statedim
 #endif
@@ -191,6 +194,9 @@
       biodim(1)=phydim
       biodim(2)=fecdim
       lightdim=DimIDs(33)
+#endif
+#ifdef SEDBIO
+      sedbiodim=DimIDs(36)
 #endif
 !
 !  Set dimension for generic user parameters.
@@ -869,6 +875,17 @@
             ioerror=status
           END IF
         END IF
+# ifdef SEDBIO
+        IF (exit_flag.eq.NoError) THEN
+          status=nf90_put_att(ncid, nf90_global, 'biosedpar_file',        &
+     &                        TRIM(bsedparnam))
+          IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+            IF (Master) WRITE (stdout,20) 'biosedpar_file', TRIM(ncname)
+            exit_flag=3
+            ioerror=status
+          END IF
+        END IF
+# endif
 #endif
 
 #ifdef FLOATS
@@ -2963,6 +2980,8 @@
 #  include <npzd_Powell_def.h>
 # elif defined RED_TIDE
 #  include <red_tide_def.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_def.h>
 # endif
 #endif
 
@@ -3674,6 +3693,9 @@
 # ifdef SEDIMENT
       integer :: seddim
 # endif
+#ifdef SEDBIO
+      integer :: sedbiodim
+#endif
 # ifdef FOUR_DVAR
       integer :: statedim
 # endif
@@ -3744,6 +3766,9 @@
       biodim(2)=fecdim
       lightdim=DimIDs(33)
 # endif
+#ifdef SEDBIO
+      sedbiodim=DimIDs(36)
+#endif
 !
 !  Get NetCDF file handle from descriptor.
 !
@@ -4423,6 +4448,17 @@
           ioerror=status
         END IF
       END IF
+#  ifdef SEDBIO
+        IF (exit_flag.eq.NoError) THEN
+          status=pio_put_att(pioFile, PIO_global, 'biosedpar_file',        &
+     &                        TRIM(bsedparnam))
+          IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+            IF (Master) WRITE (stdout,20) 'biosedpar_file', TRIM(ncname)
+            exit_flag=3
+            ioerror=status
+          END IF
+        END IF
+#  endif
 # endif
 
 # ifdef FLOATS
@@ -6506,6 +6542,8 @@
 #   include <npzd_Powell_def_pio.h>
 #  elif defined RED_TIDE
 #   include <red_tide_def_pio.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_def_pio.h>
 #  endif
 # endif
 

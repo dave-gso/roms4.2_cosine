@@ -196,7 +196,7 @@
         cff=dtdays/bdep(ng)
         DO i=Istr,Iend
 # ifdef MASKING
-          IF( rmask(i).gt.0) THEN
+          IF( rmask(i).gt.0.0) THEN
 # endif
 !		if( bUS(i,1).lt.0.1_r8 ) then
 !			write(*,*)'i=',i,'bUS(i,1)=',bUS(i,1)
@@ -247,7 +247,7 @@
             ! Supposedly this is based on Redfield, need to ask Hongjie for
             ! an actual source
             ! TA is consumed as oxygen is consumed so check the sign
-            JAlk_sed = CSOD * (-17/138) - NSOD
+            JAlk_sed = CSOD * (-17.0_r8/138.0_r8) - NSOD
 
 !        Nutrient fluxes
 !            stc=SOD(i)/max(DOX(i),1.0e-6_r8)

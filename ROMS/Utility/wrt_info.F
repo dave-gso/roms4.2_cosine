@@ -23,6 +23,9 @@
 # ifdef ECOSIM
       USE mod_eclight
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+# endif
 #endif
 #ifdef GRID_EXTRACT
       USE mod_extract
@@ -1366,6 +1369,8 @@
 #  include <npzd_Powell_wrt.h>
 # elif defined RED_TIDE
 #  include <red_tide_wrt.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_wrt.h>
 # endif
 #endif
 
@@ -4732,6 +4737,8 @@
 #   include <npzd_Powell_wrt_pio.h>
 #  elif defined RED_TIDE
 #   include <red_tide_wrt_pio.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_wrt_pio.h>
 #  endif
 # endif
 

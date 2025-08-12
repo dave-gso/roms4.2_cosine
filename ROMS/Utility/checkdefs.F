@@ -696,6 +696,56 @@
       Coptions(is:is+12)=' BIO_FENNEL,'
       ibiology=ibiology+1
 #endif
+#ifdef BIO_UMAINE15
+      IF (Master) WRITE (stdout,20) 'BIO_UMAINE15',                       &
+     &   'UMaine CoSiNE 15 ecosystem model.'
+      is=LEN_TRIM(Coptions)+1
+      Coptions(is:is+14)=' BIO_UMAINE15,'
+      ibiology=ibiology+1
+# ifdef SEDBIO
+      IF (Master) WRITE (stdout,20) 'SEDBIO',                       &
+     &   'UMaine CoSiNE 15 Sediment Biology Model.'
+      is=LEN_TRIM(Coptions)+1
+      Coptions(is:is+8)=' SEDBIO,'
+# endif
+# ifdef OPTICS_OP1
+      IF (Master) WRITE (stdout,20) 'OPTICS_OP1',                       &
+     &   'UMaine CoSiNE 15 Optics Module.'
+      is=LEN_TRIM(Coptions)+1
+      Coptions(is:is+12)=' OPTICS_OP1,'
+# endif
+# ifdef READ_ZENITH
+      IF (Master) WRITE (stdout,20) 'READ_ZENITH',                       &
+     &   'Solar zenith angle read from forcing'
+      is=LEN_TRIM(Coptions)+1
+      Coptions(is:is+12)=' READ_ZENITH,'
+# endif
+# ifdef CARBON
+	IF (Master) WRITE (stdout,20) 'CARBON',                       &
+     &   'CARBON system'
+      is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+7)=' CARBON,'
+# endif
+# ifdef TALK_NONCONSERV
+	IF (Master) WRITE (stdout,20) 'TALK_NONCONSERV',                       &
+     &   'Alkalinity'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+16)=' TALK_NONCONSERV,'
+# endif
+# ifdef OXYGEN
+      IF (Master) WRITE (stdout,20) 'OXYGEN',                       &
+     &   'Oxygen dynamics'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+7)=' OXYGEN,'
+# endif
+# ifdef PHYTO_RESP
+	IF (Master) WRITE (stdout,20) 'PHYTO_RESP',                       &
+     &   'Respiration by phytoplankton'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+11)=' PHYTO_RESP,'
+# endif
+
+#endif
 #if defined BNORM && defined HESSIAN_SV
 !
       IF (Master) WRITE (stdout,20) 'BNORM',                            &
@@ -990,7 +1040,8 @@
       Coptions(is:is+17)=' DENITRIFICATION,'
 #endif
 #if defined DIAGNOSTICS_BIO && \
-   (defined BIO_FENNEL      || defined ECB || defined HYPOXIA_SRM)
+   (defined BIO_FENNEL      || defined ECB || defined HYPOXIA_SRM || \
+    defined BIO_UMAINE15)
 !
       IF (Master) WRITE (stdout,20) 'DIAGNOSTICS_BIO',                  &
      &   'Computing and writing biological diagnostic terms'

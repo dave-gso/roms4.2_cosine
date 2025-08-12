@@ -29,6 +29,9 @@
 # ifdef VEGETATION
       USE mod_vegetation
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+# endif
       USE pio
 !
       USE dateclock_mod, ONLY : datenum, datestr, time_units
@@ -201,6 +204,9 @@
 #  ifdef SEDIMENT
       TYPE (IO_desc_t), pointer :: ioDesc_sp_b3dvar(:) ! (i,j,Nbed)
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      TYPE (IO_desc_t), pointer :: ioDesc_sp_bs3dvar(:) ! (i,j,nspc)
+#  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
       TYPE (IO_desc_t), pointer :: ioDesc_sp_l3dvar(:) ! (i,j,Nbands)
       TYPE (IO_desc_t), pointer :: ioDesc_sp_l4dvar(:) ! (i,j,N,Nbands)
@@ -247,6 +253,9 @@
 #  endif
 #  ifdef SEDIMENT
       TYPE (IO_desc_t), pointer :: ioDesc_dp_b3dvar(:) ! (i,j,Nbed)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      TYPE (IO_desc_t), pointer :: ioDesc_dp_bs3dvar(:) ! (i,j,nspc)
 #  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
       TYPE (IO_desc_t), pointer :: ioDesc_dp_l3dvar(:) ! (i,j,Nbands)
@@ -299,6 +308,9 @@
 #   ifdef SEDIMENT
       TYPE (IO_desc_t), pointer :: ioDesX_sp_b3dvar(:) ! (i,j,Nbed)
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      TYPE (IO_desc_t), pointer :: ioDesX_sp_bs3dvar(:) ! (i,j,nspc)
+#  endif
 #   if defined DIAGNOSTICS_BIO && defined ECOSIM
       TYPE (IO_desc_t), pointer :: ioDesX_sp_l3dvar(:) ! (i,j,Nbands)
       TYPE (IO_desc_t), pointer :: ioDesX_sp_l4dvar(:) ! (i,j,N,Nbands)
@@ -338,6 +350,9 @@
 #   ifdef SEDIMENT
       TYPE (IO_desc_t), pointer :: ioDesX_dp_b3dvar(:) ! (i,j,Nbed)
 #   endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      TYPE (IO_desc_t), pointer :: ioDesX_dp_bs3dvar(:) ! (i,j,nspc)
+#  endif
 #   if defined DIAGNOSTICS_BIO && defined ECOSIM
       TYPE (IO_desc_t), pointer :: ioDesX_dp_l3dvar(:) ! (i,j,Nbands)
       TYPE (IO_desc_t), pointer :: ioDesX_dp_l4dvar(:) ! (i,j,N,Nbands)

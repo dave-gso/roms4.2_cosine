@@ -27,6 +27,9 @@
 # ifdef VEGETATION
       USE mod_vegetation
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+# endif
 !
 # if defined SSH_TIDES || defined UV_TIDES
       USE mod_stepping, ONLY : NTC
@@ -329,6 +332,9 @@
 #  ifdef SEDIMENT
             CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_sp_b3dvar(ng))
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+            CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_sp_bs3dvar(ng))
+#  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
             CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_sp_l3dvar(ng))
             CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_sp_l4dvar(ng))
@@ -376,6 +382,9 @@
 #  endif
 #  ifdef SEDIMENT
             CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_dp_b3dvar(ng))
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+            CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_dp_bs3dvar(ng))
 #  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
             CALL PIO_freedecomp (pioSystem(i,ng), ioDesc_dp_l3dvar(ng))
@@ -587,7 +596,7 @@
           Je=IOBOUNDS(ng) % JUB_psi
           Ioff=0
           Joff=1
-        CASE (r2dvar, a3dvar, b3dvar, l3dvar, l4dvar, r3dvar)
+        CASE (r2dvar, a3dvar, b3dvar, l3dvar, l4dvar, r3dvar, bs3dvar)
           Cgrid=2
           Is=IOBOUNDS(ng) % ILB_rho
           Ie=IOBOUNDS(ng) % IUB_rho
@@ -789,6 +798,9 @@
 #  ifdef SEDIMENT
       allocate ( ioDesc_sp_b3dvar(Ngrids) )
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      allocate ( ioDesc_sp_bs3dvar(Ngrids) )
+#  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
       allocate ( ioDesc_sp_l3dvar(Ngrids) )
       allocate ( ioDesc_sp_l4dvar(Ngrids) )
@@ -839,6 +851,9 @@
 #  endif
 #  ifdef SEDIMENT
       allocate ( ioDesc_dp_b3dvar(Ngrids) )
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      allocate ( ioDesc_dp_bs3dvar(Ngrids) )
 #  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
       allocate ( ioDesc_dp_l3dvar(Ngrids) )
@@ -980,6 +995,11 @@
      &                       ioDesc_sp_b3dvar(ng),                      &
      &                       b3dvar, 3, 1, Nbed)
 #  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        CALL field_iodecomp (ng, pioSystem(IpioROMS,ng), PIO_real,      &
+     &                       ioDesc_sp_bs3dvar(ng),                     &
+     &                       bs3dvar, 3, 1, nspc)
+#  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
         CALL field_iodecomp (ng, pioSystem(IpioROMS,ng), PIO_real,      &
      &                       ioDesc_sp_l3dvar(ng),                      &
@@ -1086,6 +1106,11 @@
         CALL field_iodecomp (ng, pioSystem(IpioROMS,ng), PIO_double,    &
      &                       ioDesc_dp_b3dvar(ng),                      &
      &                       b3dvar, 3, 1, Nbed)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        CALL field_iodecomp (ng, pioSystem(IpioROMS,ng), PIO_double,    &
+     &                       ioDesc_dp_bs3dvar(ng),                      &
+     &                       bs3dvar, 3, 1, nspc)
 #  endif
 #  if defined DIAGNOSTICS_BIO && defined ECOSIM
         CALL field_iodecomp (ng, pioSystem(IpioROMS,ng), PIO_double,    &

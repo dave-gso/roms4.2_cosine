@@ -23,6 +23,13 @@
       USE mod_parallel
 #ifdef BIOLOGY
       USE mod_biology
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+      USE sedbio_output_mod,     ONLY : sedbio_def_nf90
+#  if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod,     ONLY : sedbio_def_pio
+#  endif
+# endif
 #endif
 #ifdef FOUR_DVAR
       USE mod_fourdvar
@@ -135,6 +142,9 @@
       integer :: k3dgrd(5), t3dgrd(5)
       integer :: r3dgrd(4), ru3dgrd(5), rv3dgrd(5)
       integer :: u3dgrd(5), v3dgrd(5), w3dgrd(4)
+#endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bsr3dgrd(4)
 #endif
 !
       real(r8) :: Aval(6)
@@ -315,6 +325,11 @@
         status=def_dim(ng, model, RST(ng)%ncid, ncname, 'Nfec',         &
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, RST(ng)%ncid, ncname, 'nspc',         &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 #endif
 
@@ -594,6 +609,11 @@
         su3dgrd(2)=DimIDs(12)
         sv3dgrd(1)=DimIDs(22)
         sv3dgrd(2)=DimIDs(12)
+#   if defined BIO_UMAINE15 && defined SEDBIO
+        bsr3dgrd(1)=DimIDs(17)
+        bsr3dgrd(2)=DimIDs(36)
+        bsr3dgrd(3)=DimIDs(12)
+#   endif
 # else
         sr3dgrd(1)=DimIDs( 1)
         sr3dgrd(2)=DimIDs( 5)
@@ -607,6 +627,12 @@
         sv3dgrd(2)=DimIDs( 7)
         sv3dgrd(3)=DimIDs( 9)
         sv3dgrd(4)=DimIDs(12)
+#   if defined BIO_UMAINE15 && defined SEDBIO
+        bsr3dgrd(1)=DimIDs( 1)
+        bsr3dgrd(2)=DimIDs( 5)
+        bsr3dgrd(3)=DimIDs(36)
+        bsr3dgrd(4)=DimIDs(12)
+#   endif
 # endif
 #endif
 !
@@ -1505,6 +1531,32 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END DO
 # endif
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient.
+!
+        Vinfo( 1)=Vname(1,idkdPAR)
+        Vinfo( 2)=Vname(2,idkdPAR)
+        Vinfo( 3)=Vname(3,idkdPAR)
+        Vinfo(14)=Vname(4,idkdPAR)
+        Vinfo(16)=Vname(1,idtime)
+#  if defined WRITE_WATER && defined MASKING
+#   if defined PERFECT_RESTART
+        Vinfo(24)='_FillValue'
+        Aval(6)=spval
+#   else
+        Vinfo(20)='mask_rho'
+#   endif
+#  endif
+        Vinfo(21)=Vname(6,idkdPAR)
+        Vinfo(22)='coordinates'
+        Aval(5)=REAL(Iinfo(1,idkdPAR,ng),r8)
+        status=def_var(ng, model, RST(ng)%ncid,                         &
+     &                 RST(ng)%Vid(idkdPAR), NF_FRST,                   &
+     &                 nvd4, r3dgrd, Aval, Vinfo, ncname)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+
 #endif
 #ifdef WEC
 !
@@ -1618,6 +1670,16 @@
 !
         CALL vegetation_def_nf90 (ng, model, Ldefine, Hout, RST,        &
      &                            sapgrd, t2dgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_nf90 (ng, model, Ldefine, Hout, RST,           &
+     &                            bsr3dgrd, t2dgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
 !
@@ -1791,6 +1853,11 @@
             got_var(idVmKP)=.TRUE.
             RST(ng)%Vid(idVmKP)=var_id(i)
 #  endif
+# endif
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            got_var(idkdPAR)=.TRUE.
+            RST(ng)%Vid(idkdPAR)=var_id(i)
 # endif
 #endif
 #ifdef WEC
@@ -2012,6 +2079,14 @@
         END IF
 #  endif
 # endif
+# ifdef OPTICS_OP1
+        IF (.not.got_var(idkdPAR)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
 #endif
 #ifdef WEC
         IF (.not.got_var(idU2Sd)) THEN
@@ -2116,6 +2191,15 @@
         CALL vegetation_def_nf90 (ng, model, Ldefine, Hout, RST)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #endif
+
+#if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Scan sediment biology model variables from input NetCDF
+!  and activate switches for restart variables. Get variable IDs. 
+!
+        CALL sedbio_def_nf90 (ng, model, Ldefine, Hout, RST)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
 !
 !  Set unlimited time record dimension to current value.
 !
@@ -2172,6 +2256,9 @@
       integer :: itrc
 #  if defined VEGETATION 
       integer :: sapgrd(4)
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+      integer :: bsr3dgrd(4)
 #  endif
       integer :: k3dgrd(5), t3dgrd(5)
       integer :: r3dgrd(4), ru3dgrd(5), rv3dgrd(5)
@@ -2358,6 +2445,11 @@
         status=def_dim(ng, model, RST(ng)%pioFile, ncname, 'Nfec',      &
      &                 Nfec, DimIDs(28))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
+#  if defined BIO_UMAINE15 && defined SEDBIO
+        status=def_dim(ng, model, RST(ng)%pioFile, ncname, 'nspc',      &
+     &                 nspc, DimIDs(36))
+	  IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
 # endif
 
@@ -2637,6 +2729,11 @@
         su3dgrd(2)=DimIDs(12)
         sv3dgrd(1)=DimIDs(22)
         sv3dgrd(2)=DimIDs(12)
+#   if defined BIO_UMAINE15 && defined SEDBIO
+        bsr3dgrd(1)=DimIDs(17)
+        bsr3dgrd(2)=DimIDs(36)
+        bsr3dgrd(3)=DimIDs(12)
+#   endif
 #  else
         sr3dgrd(1)=DimIDs( 1)
         sr3dgrd(2)=DimIDs( 5)
@@ -2650,6 +2747,12 @@
         sv3dgrd(2)=DimIDs( 7)
         sv3dgrd(3)=DimIDs( 9)
         sv3dgrd(4)=DimIDs(12)
+#   if defined BIO_UMAINE15 && defined SEDBIO
+        bsr3dgrd(1)=DimIDs( 1)
+        bsr3dgrd(2)=DimIDs( 5)
+        bsr3dgrd(3)=DimIDs(36)
+        bsr3dgrd(4)=DimIDs(12)
+#   endif
 #  endif
 # endif
 !
@@ -3687,6 +3790,35 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END DO
 #  endif
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Define light attenuation coefficient.
+!
+        Vinfo( 1)=Vname(1,idkdPAR)
+        Vinfo( 2)=Vname(2,idkdPAR)
+        Vinfo( 3)=Vname(3,idkdPAR)
+        Vinfo(14)=Vname(4,idkdPAR)
+        Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+#    if defined PERFECT_RESTART
+        Vinfo(24)='_FillValue'
+        Aval(6)=spval
+#    else
+        Vinfo(20)='mask_rho'
+#    endif
+#   endif
+        Vinfo(21)=Vname(6,idkdPAR)
+        Vinfo(22)='coordinates'
+        Aval(5)=REAL(Iinfo(1,idkdPAR,ng),r8)
+        RST(ng)%pioVar(idkdPAR%dkind=PIO_FRST
+	  RST(ng)%pioVar(idkdPAR%gtype=r3dvar
+!
+        status=def_var(ng, model, RST(ng)%pioFile,                      &
+     &                 RST(ng)%pioVar(idkdPAR)%vd,                      &
+     &                 PIO_FRST, nvd4, r3dgrd, Aval, Vinfo, ncname)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
+
 # endif
 # ifdef WEC
 !
@@ -3797,6 +3929,16 @@
 !
         CALL vegetation_def_pio (ng, model, Ldefine, Hout, RST,         &
      &                           sapgrd, t2dgrd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Define the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+        CALL sedbio_def_pio (ng, model, Ldefine, Hout, RST,                &
+     &                            bsr3dgrd, t2dgrd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 !
@@ -4357,6 +4499,14 @@
           END IF
         END DO
 #  endif
+# ifdef OPTICS_OP1
+        IF (.not.got_var(idkdPAR)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),          &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
 # endif
 
 # ifdef ICE_MODEL
@@ -4373,6 +4523,14 @@
 !  and activate switches for restart variables. Ger variable IDs.
 !
         CALL vegetation_def_pio (ng, model, Ldefine, Hout, RST)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!  Scan sediment biology model variables from input NetCDF
+!  and activate switches for restart variables. Get variable IDs. 
+!
+        CALL sedbio_def_pio (ng, model, Ldefine, Hout, RST)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 !

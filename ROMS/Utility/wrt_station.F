@@ -30,6 +30,9 @@
       USE mod_sedbed
       USE mod_sediment
 # endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE mod_sedbio
+# endif
       USE mod_stepping
 !
 # if defined BBL_MODEL || defined WAVES_OUTPUT
@@ -52,6 +55,12 @@
       USE sediment_output_mod, ONLY : sediment_wrt_station_nf90
 #  if defined PIO_LIB && defined DISTRIBUTE
       USE sediment_output_mod, ONLY : sediment_wrt_station_pio
+#  endif
+# endif
+# if defined BIO_UMAINE15 && defined SEDBIO
+      USE sedbio_output_mod, ONLY : sedbio_wrt_station_nf90
+#  if defined PIO_LIB && defined DISTRIBUTE
+      USE sedbio_output_mod, ONLY : sedbio_wrt_station_pio
 #  endif
 # endif
       USE uv_rotate_mod,       ONLY : uv_rotate2d
@@ -485,7 +494,79 @@
      &                        varid = STA(ng)%Vid(idDano))
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
       END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+      IF (Sout(idkdPAR,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta3d (ng, model, Cgrid, idkdPAR, r3dvar,          &
+     &                      LBi, UBi, LBj, UBj, 1, N(ng),               &
+     &                      scale, OCEAN(ng)%kdpar,                     &
+     &                      NposR, XposR, YposR, ZposR, rsta)
+        CALL netcdf_put_fvar (ng, model, STA(ng)%name,                  &
+     &                        TRIM(Vname(1,idkdPAR)), rsta,             &
+     &                        (/1,1,STA(ng)%Rindex/),                   &
+     &                        (/N(ng),Nstation(ng),1/),                 &
+     &                        ncid = STA(ng)%ncid,                      &
+     &                        varid = STA(ng)%Vid(idkdPAR))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Write out CO2 surface flux
+!
+      IF (Sout(idfgCO2,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta2d (ng, model, Cgrid, idfgCO2, r2dvar,         &
+     &                      LBi, UBi, LBj, UBj,                        &
+     &                      scale, OCEAN(ng) % fgCO2,                  &
+     &                      Nstation(ng), Xpos, Ypos, psta)
+        CALL netcdf_put_fvar (ng, model, STA(ng)%name,                 &
+     &                        TRIM(Vname(1,idfgCO2)), psta,            &
+     &                        (/1,STA(ng)%Rindex/),                    &
+     &                        (/Nstation(ng),1/),                      &
+     &                        ncid = STA(ng)%ncid,                     &
+     &                        varid = STA(ng)%Vid(idfgCO2))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+!
+!  Write out surface pCO2
+!
+      IF (Sout(idpCO2s,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta2d (ng, model, Cgrid, idpCO2s, r2dvar,         &
+     &                      LBi, UBi, LBj, UBj,                        &
+     &                      scale, OCEAN(ng) % pCO2s,                  &
+     &                      Nstation(ng), Xpos, Ypos, psta)
+        CALL netcdf_put_fvar (ng, model, STA(ng)%name,                 &
+     &                        TRIM(Vname(1,idpCO2s)), psta,            &
+     &                        (/1,STA(ng)%Rindex/),                    &
+     &                        (/Nstation(ng),1/),                      &
+     &                        ncid = STA(ng)%ncid,                     &
+     &                        varid = STA(ng)%Vid(idpCO2s))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
+#  ifdef LMD_SKPP
+!
+!  Write out depth of surface boundary layer.
+!
+      IF (Sout(idHsbl,ng)) THEN
+        scale=1.0_r8
+        CALL extract_sta2d (ng, iNLM, Cgrid, idHsbl, r2dvar,            &
+     &                      LBi, UBi, LBj, UBj,                         &
+     &                      scale, MIXING(ng)%hsbl,                     &
+     &                      Nstation(ng), Xpos, Ypos, psta)
+        CALL netcdf_put_fvar (ng, iNLM, STA(ng)%name,                   &
+     &                        TRIM(Vname(1,idHsbl)), psta,              &
+     &                        (/1,STA(ng)%Rindex/), (/Nstation(ng),1/), &
+     &                        ncid = STA(ng)%ncid,                      &
+     &                        varid = STA(ng)%Vid(idHsbl))
+        IF (exit_flag.ne.NoError) RETURN
+      END IF
+#  endif
 #  ifdef LMD_SKPP
 !
 !  Write out depth of surface boundary layer.
@@ -1022,6 +1103,18 @@
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
 
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+      CALL sedbio_wrt_station_nf90 (ng, model, tile,                  &
+     &                                LBi, UBi, LBj, UBj,               &
+     &                                Sout, STA)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
+
 # if defined WEC || defined WEC_VF
 !
 !-----------------------------------------------------------------------
@@ -1414,7 +1507,61 @@
      &                            pioVar = STA(ng)%pioVar(idDano)%vd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
       END IF
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Write out light attenuation coefficient.
+!
+      IF (Sout(idkdPAR,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta3d (ng, model, Cgrid, idkdPAR, r3dvar,          &
+     &                      LBi, UBi, LBj, UBj, 1, N(ng),               &
+     &                      scale, OCEAN(ng)%kdpar,                     &
+     &                      NposR, XposR, YposR, ZposR, rsta)
+        CALL pio_netcdf_put_fvar (ng, model, STA(ng)%name,              &
+     &                        TRIM(Vname(1,idkdPAR)), rsta,             &
+     &                        (/1,1,STA(ng)%Rindex/),                   &
+     &                        (/N(ng),Nstation(ng),1/),                 &
+     &                        pioFile = STA(ng)%pioFile,                &
+     &                        pioVar = STA(ng)%pioVar(idkdPAR)%vd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+!
+!  Write out CO2 surface flux
+!
+      IF (Sout(idfgCO2,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta2d (ng, model, Cgrid, idfgCO2, r2dvar,         &
+     &                      LBi, UBi, LBj, UBj,                        &
+     &                      scale, OCEAN(ng) % fgCO2,                  &
+     &                      Nstation(ng), Xpos, Ypos, psta)
+        CALL pio_netcdf_put_fvar (ng, model, STA(ng)%name,             &
+     &                        TRIM(Vname(1,idfgCO2)), psta,            &
+     &                        (/1,STA(ng)%Rindex/),                    &
+     &                        (/Nstation(ng),1/),                      &
+     &                        pioFile = STA(ng)%pioFile,                &
+     &                        pioVar = STA(ng)%pioVar(idfgCO2)%vd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+!
+!  Write out surface pCO2
+!
+      IF (Sout(idpCO2s,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta2d (ng, model, Cgrid, idpCO2s, r2dvar,         &
+     &                      LBi, UBi, LBj, UBj,                        &
+     &                      scale, OCEAN(ng) % pCO2s,                  &
+     &                      Nstation(ng), Xpos, Ypos, psta)
+        CALL pio_netcdf_put_fvar (ng, model, STA(ng)%name,             &
+     &                        TRIM(Vname(1,idpCO2s)), psta,            &
+     &                        (/1,STA(ng)%Rindex/),                    &
+     &                        (/Nstation(ng),1/),                      &
+     &                        pioFile = STA(ng)%pioFile,                &
+     &                        pioVar = STA(ng)%pioVar(idpCO2s)%vd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
 #   ifdef LMD_SKPP
 !
 !  Write out depth of surface boundary layer.
@@ -1972,6 +2119,18 @@
      &                                 Sout, STA)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
+
+# if defined BIO_UMAINE15 && defined SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Write out the sediment biology model variables.
+!-----------------------------------------------------------------------
+!
+      CALL sedbio_wrt_station_pio (ng, model, tile,                     &
+     &                                LBi, UBi, LBj, UBj,               &
+     &                                Sout, STA)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
 
 #  if defined WEC || defined WEC_VF
 !

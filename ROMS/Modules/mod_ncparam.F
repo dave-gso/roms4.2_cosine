@@ -107,7 +107,7 @@
 !  Maximum number of dimension IDs stored in local array DimIDs used to
 !  defined variable dimensions in output NetCDF files.
 !
-      integer, parameter :: nDimID = 35
+      integer, parameter :: nDimID = 36
 !
 !  Number of horizontal interior and boundary water points.
 !
@@ -207,6 +207,7 @@
       integer  :: idEmPf        ! E-P from bulk_flux.F
       integer  :: idevap        ! evaporation rate
       integer  :: idfcor        ! Coriolis parameter
+      integer  :: idfgCO2       ! CO2 surface flux (UMAINE15)
       integer  :: idFsur        ! free-surface
       integer  :: idFsuD        ! detided free-surface
       integer  :: idFsuH        ! free-surface tide harmonics
@@ -220,6 +221,7 @@
       integer  :: idHzdz        ! level thickness
       integer  :: idIncr        ! 4D-Var analysis increment
       integer  :: idInno        ! 4D-Var innovation vector
+      integer  :: idkdPAR       ! light attenuation coefficient (UMAINE15)
       integer  :: idKhor        ! convolution horizontal diffusion
       integer  :: idKver        ! convolution vertical diffusion
       integer  :: idLatP        ! latitude of PSI-points
@@ -269,6 +271,7 @@
       integer  :: idPair        ! surface air pressure
       integer  :: idPBLh        ! planetary boundary layer height
       integer  :: idPbar        ! streamfunction
+      integer  :: idpCO2s       ! Surface pCO2 (UMAINE15)
       integer  :: idPVzs        ! potential vorticity depth slices
       integer  :: idPwet        ! wet/dry mask on PSI-points
       integer  :: idpmdx        ! inverse grid x-spacing
@@ -447,17 +450,13 @@
       integer  :: idYgrU        ! y-locations of U-points
       integer  :: idYgrV        ! y-locations of V-points
       integer  :: idZoBL        ! bottom roughness length
-      integer  :: idZads        ! Free-surface adjoint sensitivity
+      integer  :: idZads        ! Free-surface adjoint sensitivity   
+      integer  :: idzang        ! solar zenith angle (UMAINE15)
       integer  :: idZtlf        ! Free-surface impulse forcing
       integer  :: id2dPV        ! 2D potential vorticity
       integer  :: id2dRV        ! 2D relative vorticity
       integer  :: id3dPV        ! 3D potential vorticity
       integer  :: id3dRV        ! 3D relative vorticity
-! CoSiNE:      
-      integer  :: idzang        ! solar zenith angle
-      integer  :: idkdPAR       ! light attenuation coefficient
-      integer  :: idfgCO2       ! CO2 surface flux
-      integer  :: idpCO2s       ! Surface pCO2
 !
 !  Last used variable ID counter.
 !
@@ -1487,6 +1486,10 @@
             gtype=a3dvar
           CASE ('b3dvar')
             gtype=b3dvar
+#if defined BIO_UMAINE15 && defined SEDBIO
+          CASE ('bs3dvar')
+            gtype=bs3dvar
+#endif
 #if defined ECOSIM && defined DIAGNOSTICS_BIO
           CASE ('l3dvar')
             gtype=l3dvar
@@ -1784,10 +1787,6 @@
             idCfra=varid
           CASE ('idSrad')
             idSrad=varid
-# if defined BIO_UMAINE15 && defined READ_ZENITH
-            CASE ('idzang')
-              idzang=varid
-# endif
           CASE ('idLdwn')
             idLdwn=varid
           CASE ('idLrad')

@@ -31,6 +31,8 @@
 #  include <npzd_Powell_inp.h>
 # elif defined RED_TIDE
 #  include <red_tide_inp.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15_inp.h>
 # endif
 #else
       SUBROUTINE read_BioPar

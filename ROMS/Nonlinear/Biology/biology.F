@@ -124,6 +124,8 @@
 #  include <npzd_Powell.h>
 # elif defined RED_TIDE
 #  include <red_tide.h>
+# elif defined BIO_UMAINE15
+#  include <bio_UMAINE15.h>
 # endif
 #else
       MODULE biology_mod

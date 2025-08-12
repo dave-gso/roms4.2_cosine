@@ -178,6 +178,17 @@
 
       CALL read_BioPar (model, 25, out, Lwrite)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# ifdef SEDBIO
+!
+!-----------------------------------------------------------------------
+!  Read in sediment biology model input parameters.
+!-----------------------------------------------------------------------
+!
+      OPEN (26, FILE=TRIM(bsedparnam), FORM='formatted', STATUS='old')
+
+      CALL read_SedBioPar (model, 26, out, Lwrite)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
 #endif
 #ifdef SEDIMENT
 !

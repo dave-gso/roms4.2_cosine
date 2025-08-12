@@ -14,6 +14,8 @@
       USE mod_ncparam
       USE mod_scalars
 !
+      USE inp_decode_mod
+!
       implicit none
 !
 !  Imported variable declarations
@@ -26,8 +28,6 @@
       integer :: Npts, Nval, i, itrc, ng, status
 
       integer :: igrid, itracer,iTrcStr, iTrcEnd,nline,ifield
-      
-      integer :: decode_line, load_i, load_l, load_r,load_lbc
 
       logical, dimension(Ngrids) :: Lbio
 
@@ -36,13 +36,17 @@
 ! AKB 5/18/23
 !
       logical, dimension(NSF,Ngrids) :: Ltrc
-      real(r8), dimension(NSF,Ngrids) :: Rbio
-      real(r8), dimension(100) :: Rval
+!      real(r8), dimension(NSF,Ngrids) :: Rbio
+!      logical, dimension(NSF,Ngrids) :: Ltrc_sf
+!      logical, dimension(NPOM,Ngrids) :: Ltrc_pm
+!      logical, dimension(NDR,Ngrids) :: Ltrc_dr
+!      logical, dimension(NPWC,Ngrids) :: Ltrc_pw
+      real(r8), dimension(nspc,Ngrids) :: Rbio
+      real(r8), dimension(nRval) :: Rval
       
       character (len=40 ) :: KeyWord
       character (len=256) :: line
-!     character (len=256), dimension(100) :: Cval
-      character (len=256), dimension(200) :: Cval
+      character (len=256), dimension(nCval) :: Cval
 !
 !-----------------------------------------------------------------------
 !  Initialize.
@@ -67,14 +71,14 @@
           CASE('Lsedbiology')
              Npts=load_l(Nval, Cval, Ngrids, Lsedbiology)
           CASE('bUmax')
-             Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+             Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
              DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bUmax(ng,itrc)=Rbio(itrc,ng)
                 END DO
              END DO
           CASE('bUmaxSi')
-            Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
             DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bUmaxSi(ng,itrc)=Rbio(itrc,ng)
@@ -109,35 +113,35 @@
           CASE('bpsi_p')
             Npts=load_r(Nval, Rval, Ngrids, bpsi_p)
           CASE('bfc')
-            Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
             DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bfc(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
           CASE('bfn')
-            Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
             DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bfn(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
           CASE('bfp')
-            Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
             DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bfp(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
           CASE('bfs')
-            Npts=load_r(Nval, Rval, nspc*Ngrids, Rbio)
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
             DO ng=1,Ngrids
                 DO itrc=1,nspc
                     bfs(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
           CASE ('Hout(idbPM)')
-            Npts=load_l(Nval, Cval, NPOM*Ngrids, Ltrc)
+            Npts=load_l(Nval, Cval, NSF, Ngrids, Ltrc)
             DO ng=1,Ngrids
               DO itrc=1,NPOM
                 i=idbPM(itrc)
@@ -151,7 +155,7 @@
               END DO
             END DO
           CASE ('Hout(idbPW)')
-            Npts=load_l(Nval, Cval, NPWC*Ngrids, Ltrc)
+            Npts=load_l(Nval, Cval, NSF, Ngrids, Ltrc)
             DO ng=1,Ngrids
               DO itrc=1,NPWC
                 i=idbPW(itrc)
@@ -165,7 +169,7 @@
               END DO
             END DO
           CASE ('Hout(idbDR)')
-            Npts=load_l(Nval, Cval, NDR*Ngrids, Ltrc)
+            Npts=load_l(Nval, Cval, NSF, Ngrids, Ltrc)
             DO ng=1,Ngrids
               DO itrc=1,NDR
                 i=idbDR(itrc)
@@ -179,7 +183,7 @@
               END DO
             END DO
           CASE ('Hout(idbSF)')
-            Npts=load_l(Nval, Cval, NSF*Ngrids, Ltrc)
+            Npts=load_l(Nval, Cval, NSF, Ngrids, Ltrc)
             DO ng=1,Ngrids
               DO itrc=1,NSF
                 i=idbSF(itrc)
