@@ -211,7 +211,10 @@
       character (len= 22) :: t_code
       character (len= 40) :: tunits
       character (len=256) :: ncname
-
+#if defined BIO_UMAINE15 && defined OPTICS_OP1
+      integer :: j, k
+      real(r8), parameter :: kdIniVal = 0.05_r8
+#endif
       character (len=*), parameter :: MyFile =                          &
      &  __FILE__//", get_state_nf90"
 !
@@ -2278,7 +2281,74 @@
           END IF
         END DO
 #  endif
-
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Read in extinction coefficient for PAR.
+!
+          IF (get_var(idkdPAR).and.have_var(idkdPAR)) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idkdPAR)), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*r3dvar
+              status=nf_fread3d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idkdPAR), varid,                &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj, 1, N(ng),           &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          OCEAN(ng) % kdPAR,                      &
+     &                          checksum = Fhash)
+#   else
+     &                          OCEAN(ng) % kdPAR)
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idkdPAR)),     &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#  ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idkdPAR)),             &
+     &                              Fmin, Fmax, Fhash
+#  else
+                  WRITE (stdout,70) TRIM(Vname(2,idkdPAR)),             &
+     &                              Fmin, Fmax
+#  endif
+                END IF
+#    ifdef MASKING
+!   set kdPAR for land points to ini value
+!                  write(*,*)'setting kdPAR at land points to ',kdIniVal
+                  do j=LBj,UBj
+                    do i=LBi,UBi
+                      if( GRID(ng)%rmask(i,j).lt.0.5_r8 ) THEN
+                        do k=1,N(ng)
+                          OCEAN(ng)%kdPAR(i,j,k)=kdIniVal
+                        end do
+                      end if
+                    end do
+                  end do
+#    endif
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idkdPAR)),       &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined SEDBIO
 !
 !  Read in sediment particulate concentrations.
@@ -7870,6 +7940,10 @@
       character (len=*), parameter :: MyFile =                          &
      &  __FILE__//", get_state_pio"
 !
+#if defined BIO_UMAINE15 && defined OPTICS_OP1
+      integer :: j, k
+      real(r8), parameter :: kdIniVal = 0.05_r8
+#endif
       TYPE (IO_Desc_t), pointer :: ioDesc
 
       TYPE (file_desc_t) :: pioFile
@@ -10244,6 +10318,82 @@
           END IF
         END DO
 #   endif
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+!
+!  Read in extinction coefficient for PAR.
+!
+          IF (get_var(idkdPAR).and.have_var(idkdPAR)) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idkdPAR)), varid)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=r3dvar
+              IF (KIND(OCEAN(ng)%kdPAR).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_r3dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_r3dvar(ng)
+              END IF
+              status=nf_fread3d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idkdPAR), my_pioVar,            &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj, 1, N(ng),           &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          OCEAN(ng) % kdPAR,                      &
+     &                          checksum = Fhash)
+#   else
+     &                          OCEAN(ng) % kdPAR)
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idkdPAR)),     &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#  ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idkdPAR)),             &
+     &                              Fmin, Fmax, Fhash
+#  else
+                  WRITE (stdout,70) TRIM(Vname(2,idkdPAR)),             &
+     &                              Fmin, Fmax
+#  endif
+#    ifdef MASKING
+!   set kdPAR for land points to ini value
+			write(*,*)'setting kdPAR at land points to ',kdIniVal
+                  do j=LBj,UBj
+                    do i=LBi,UBi
+                      if( GRID(ng)%rmask(i,j).lt.0.5_r8 ) THEN
+                        do k=1,N(ng)
+                          OCEAN(ng)%kdPAR(i,j,k)=kdIniVal
+                        end do
+                      end if
+                    end do
+                  end do
+#    endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idkdPAR)),       &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+#  endif
 #   if defined BIO_UMAINE15 && defined SEDBIO
 !
 !  Read in sediment particulate concentrations.

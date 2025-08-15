@@ -1583,6 +1583,15 @@
       IF (Hout(idkdPAR,ng)) THEN
         scale=1.0_dp
         gtype=gfactor*r3dvar
+        do j=LBj,UBj
+          do i=LBi,UBi
+            do k=1,N(ng)
+              if(isnan(OCEAN(ng)%kdPAR(i,j,k))) then
+                write(*,*)'kdPAR = nan, i,j,k =',i,j,k
+		  end if
+		end do
+	    end do
+	  end do
         status=nf_fwrite3d(ng, model, HIS(ng)%ncid, idkdPAR,            &
      &                     HIS(ng)%Vid(idkdPAR),                        &
      &                     HIS(ng)%Rindex, gtype,                       &
@@ -1590,7 +1599,7 @@
 # ifdef MASKING
      &                     GRID(ng) % rmask,                            &
 # endif
-     &                     OCEAN(ng) % kdpar)
+     &                     OCEAN(ng) % kdPAR)
         IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
           IF (Master) THEN
             WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), HIS(ng)%Rindex

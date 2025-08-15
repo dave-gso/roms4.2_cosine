@@ -773,6 +773,10 @@
             got_var(idtime)=.TRUE.
             DIA(ng)%Vid(idtime)=var_id(i)
           END IF
+!          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idFsur))) THEN
+!            got_var(idFsur)=.TRUE.
+!            DIA(ng)%Vid(idFsur)=var_id(i)
+!          END IF
 # ifdef DIAGNOSTICS_UV
           DO ivar=1,NDM2d
             IF (TRIM(var_name(i)).eq.                                   &
@@ -856,6 +860,12 @@
           exit_flag=3
           RETURN
         END IF
+!        IF (.not.got_var(idFsur)) THEN
+!          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idFsur)),          &
+!     &                                  TRIM(ncname)
+!          exit_flag=3
+!          RETURN
+!        END IF
 # ifdef DIAGNOSTICS_UV
         DO ivar=1,NDM2d
           ifield=idDu2d(ivar)
@@ -1725,6 +1735,12 @@
             DIA(ng)%pioVar(idtime)%dkind=PIO_TOUT
             DIA(ng)%pioVar(idtime)%gtype=0
           END IF
+!          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idFsur))) THEN
+!            got_var(idFsur)=.TRUE.
+!            DIA(ng)%pioVar(idFsur)%vd=var_desc(i)
+!            DIA(ng)%pioVar(idFsur)%dkind=PIO_FOUT
+!            DIA(ng)%pioVar(idFsur)%gtype=r2dvar
+!          END IF
 #  ifdef DIAGNOSTICS_UV
           DO ivar=1,NDM2d
             IF (TRIM(var_name(i)).eq.                                   &
@@ -1826,6 +1842,12 @@
           exit_flag=3
           RETURN
         END IF
+!        IF (.not.got_var(idFsur)) THEN
+!          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idFsur)),          &
+!     &                                  TRIM(ncname)
+!          exit_flag=3
+!          RETURN
+!        END IF
 #  ifdef DIAGNOSTICS_UV
         DO ivar=1,NDM2d
           ifield=idDu2d(ivar)

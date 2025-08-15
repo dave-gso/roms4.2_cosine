@@ -2503,6 +2503,19 @@
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idDano))) THEN
             got_var(idDano)=.TRUE.
             HIS(ng)%Vid(idDano)=var_id(i)
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            got_var(idkdPAR)=.TRUE.
+            HIS(ng)%Vid(idkdPAR)=var_id(i)
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
+            got_var(idfgCO2)=.TRUE.
+            HIS(ng)%Vid(idfgCO2)=var_id(i)
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idpCO2s))) THEN
+            got_var(idpCO2s)=.TRUE.
+            HIS(ng)%Vid(idpCO2s)=var_id(i)
+# endif
 # ifdef LMD_SKPP
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idHsbl))) THEN
             got_var(idHsbl)=.TRUE.
@@ -2928,6 +2941,28 @@
           exit_flag=3
           RETURN
         END IF
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+        IF (.not.got_var(idkdPAR).and.Hout(idkdPAR,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+        IF (.not.got_var(idfgCO2).and.Hout(idfgCO2,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idfgCO2)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+        IF (.not.got_var(idpCO2s).and.Hout(idpCO2s,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idpCO2s)),        &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
 # ifdef LMD_SKPP
         IF (.not.got_var(idHsbl).and.Hout(idHsbl,ng)) THEN
           IF (Master) WRITE (stdout,70) TRIM(Vname(1,idHsbl)),          &
@@ -6023,6 +6058,25 @@
             HIS(ng)%pioVar(idDano)%vd=var_desc(i)
             HIS(ng)%pioVar(idDano)%dkind=PIO_FOUT
             HIS(ng)%pioVar(idDano)%gtype=r3dvar
+# if defined BIO_UMAINE15 && defined OPTICS_OP1
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idkdPAR))) THEN
+            got_var(idkdPAR)=.TRUE.
+            HIS(ng)%pioVar(idkdPAR)%vd=var_desc(i)
+            HIS(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
+            HIS(ng)%pioVar(idkdPAR)%gtype=r3dvar
+# endif
+# if defined BIO_UMAINE15 && defined CARBON
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
+            got_var(idfgCO2)=.TRUE.
+            HIS(ng)%pioVar(idfgCO2)%vd=var_desc(i)
+            HIS(ng)%pioVar(idfgCO2)%dkind=PIO_FOUT
+            HIS(ng)%pioVar(idfgCO2)%gtype=r2dvar
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idpCO2s))) THEN
+            got_var(idpCO2s)=.TRUE.
+            HIS(ng)%pioVar(idpCO2s)%vd=var_desc(i)
+            HIS(ng)%pioVar(idpCO2s)%dkind=PIO_FOUT
+            HIS(ng)%pioVar(idpCO2s)%gtype=r2dvar
+# endif
 #  ifdef LMD_SKPP
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idHsbl))) THEN
             got_var(idHsbl)=.TRUE.
@@ -6506,6 +6560,28 @@
           exit_flag=3
           RETURN
         END IF
+#  if defined BIO_UMAINE15 && defined OPTICS_OP1
+        IF (.not.got_var(idkdPAR).and.Hout(idkdPAR,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CARBON
+        IF (.not.got_var(idfgCO2).and.Hout(idfgCO2,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idfgCO2)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+        IF (.not.got_var(idpCO2s).and.Hout(idpCO2s,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idpCO2s)),        &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
 #  ifdef LMD_SKPP
         IF (.not.got_var(idHsbl).and.Hout(idHsbl,ng)) THEN
           IF (Master) WRITE (stdout,70) TRIM(Vname(1,idHsbl)),          &
