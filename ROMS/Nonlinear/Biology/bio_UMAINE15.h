@@ -439,6 +439,7 @@
       real(r8) :: Qsms14,Qsms15,NQsms14,NQsms15,sms14,sms15
       real(r8) :: Chl2C_s1,Chl2C_s2,excrz1_2,excrz2_2
       real(r8) :: aggregs1,aggregs2,aggregchl1,aggregchl2,sumphy
+      real(r8) :: Chl2ns1_m,Chl2ns2_m
 #ifdef PHYTO_RESP
       real(r8) :: resps1,resps2,respchl1,respchl2
 #endif
@@ -451,6 +452,7 @@
       real(r8) :: Chl2C_s3
       real(r8) :: aggregs3,aggregchl3
       real(r8) :: gs3zz2,gchl3zz2
+      real(r8) :: Chl2ns3_m
 # ifdef PHYTO_RESP
       real(r8) :: resps3,respchl3
 # endif
@@ -502,6 +504,12 @@
           END DO
         END DO
       END IF
+#endif
+! maximum chlorophyll (mg) to nitrogen (mmole) ratios
+Chl2ns1_m=Chl2cs1_m(ng)*c2n(ng)*12.0_r8
+Chl2ns2_m=Chl2cs2_m(ng)*c2n(ng)*12.0_r8
+#ifdef HAB
+Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #endif
 !
 !-----------------------------------------------------------------------
@@ -953,23 +961,33 @@
 !
 
       cff=c2n(ng)*12.0_r8
-      Chl2C_s1=MIN(Bio(i,k,iChl1)/(Bio(i,k,iSphy)*cff+Minval),  &
-     &                    Chl2cs1_m(ng))
-     
-      Chl2C_s2=MIN(Bio(i,k,iChl2)/(Bio(i,k,iLphy)*cff+Minval),  &
-     &                    Chl2cs2_m(ng))
+!      Chl2C_s1=MIN(Bio(i,k,iChl1)/(Bio(i,k,iSphy)*cff+Minval),  &
+!     &                    Chl2cs1_m(ng))     
+!      Chl2C_s2=MIN(Bio(i,k,iChl2)/(Bio(i,k,iLphy)*cff+Minval),  &
+!     &                    Chl2cs2_m(ng))
+! not enforcing max chl:C ratio:
+      Chl2C_s1=Bio(i,k,iChl1)/(Bio(i,k,iSphy)*cff+Minval)
+      Chl2C_s2=Bio(i,k,iChl2)/(Bio(i,k,iLphy)*cff+Minval)
 #ifdef HAB
-      Chl2C_s3=MIN(Bio(i,k,iChl3)/(Bio(i,k,iHphy)*cff+Minval),  &
-     &                    Chl2cs3_m(ng))
+!      Chl2C_s3=MIN(Bio(i,k,iChl3)/(Bio(i,k,iHphy)*cff+Minval),  &
+!     &                    Chl2cs3_m(ng))
+      Chl2C_s3=Bio(i,k,iChl3)/(Bio(i,k,iHphy)*cff+Minval)
 #endif
-      npchl1=(gno3s1+gnh4s1)*(gno3s1+gnh4s1)*Chl2cs1_m(ng)      &
-     &   *Bio(i,k,iChl1)/                             &
-     &   (amaxs1(ng)*MAX(Chl2C_s1,Minval)*PAR(i,k)+Minval)
-
-      npchl2=(gno3s2+gnh4s2)*(gno3s2+gnh4s2)*Chl2cs2_m(ng)     &
-     &   *Bio(i,k,iChl2)/                             &
-     &   (amaxs2(ng)*MAX(Chl2C_s2,Minval)*PAR(i,k)+Minval)
-		  
+!      npchl1=(gno3s1+gnh4s1)*(gno3s1+gnh4s1)*Chl2cs1_m(ng)      &
+!     &   *Bio(i,k,iChl1)/                             &
+!     &   (amaxs1(ng)*MAX(Chl2C_s1,Minval)*PAR(i,k)+Minval)
+!
+!      npchl2=(gno3s2+gnh4s2)*(gno3s2+gnh4s2)*Chl2cs2_m(ng)     &
+!     &   *Bio(i,k,iChl2)/                             &
+!     &   (amaxs2(ng)*MAX(Chl2C_s2,Minval)*PAR(i,k)+Minval)
+      
+      npchl1=(gno3s1+gnh4s1)*(gno3s1+gnh4s1)*Chl2ns1_m         &
+     &   *Bio(i,k,iSphy)/                                      &
+     &   (amaxs1(ng)*PAR(i,k)+Minval)
+      npchl2=(gno3s2+gnh4s2)*(gno3s2+gnh4s2)*Chl2ns2_m         &
+     &   *Bio(i,k,iLphy)/                                      &
+     &   (amaxs2(ng)*PAR(i,k)+Minval)
+     		  
       npchl1=npchl1*q10pp
       npchl2=npchl2*q10pp
 #ifdef PHYTO_RESP
@@ -977,9 +995,12 @@
       respchl2=resps2*c2n(ng)*Chl2C_s2*12.0_r8*q10pr	  
 #endif
 #ifdef HAB
-      npchl3=(gno3s3+gnh4s3)*(gno3s3+gnh4s3)*Chl2cs3_m(ng)     &
-     &   *Bio(i,k,iChl3)/                             &
-     &   (amaxs3(ng)*MAX(Chl2C_s3,Minval)*PAR(i,k)+Minval)
+!      npchl3=(gno3s3+gnh4s3)*(gno3s3+gnh4s3)*Chl2cs3_m(ng)     &
+!     &   *Bio(i,k,iChl3)/                             &
+!     &   (amaxs3(ng)*MAX(Chl2C_s3,Minval)*PAR(i,k)+Minval)
+      npchl3=(gno3s3+gnh4s3)*(gno3s3+gnh4s3)*Chl2ns3_m         &
+     &   *Bio(i,k,iHphy)/                                      &
+     &   (amaxs3(ng)*PAR(i,k)+Minval)
       npchl3=npchl3*q10pp
 # ifdef PHYTO_RESP
       respchl3=resps3*c2n(ng)*Chl2C_s3*12.0_r8*q10pr
@@ -999,10 +1020,13 @@
 
 !     *** Chla for s1 and s2: Xiu and Geng
 !
-       morchl1=bgamma3(ng)*Bio(i,k,iChl1)*q10pr
-       morchl2=bgamma4(ng)*Bio(i,k,iChl2)*q10pr
+!       morchl1=bgamma3(ng)*Bio(i,k,iChl1)*q10pr
+!       morchl2=bgamma4(ng)*Bio(i,k,iChl2)*q10pr
+       morchl1=morts1*c2n(ng)*Chl2C_s1*12.0_r8
+       morchl2=morts2*c2n(ng)*Chl2C_s2*12.0_r8
 #ifdef HAB
-       morchl3=bgamma4s3(ng)*Bio(i,k,iChl3)*q10pr
+!       morchl3=bgamma4s3(ng)*Bio(i,k,iChl3)*q10pr
+       morchl3=morts3*c2n(ng)*Chl2C_s3*12.0_r8
 #endif
       
 ! aggregates
@@ -1012,15 +1036,20 @@
       aggregs1=bgamma6(ng)*sumphy*Bio(i,k,iSphy)*q10pr
       aggregs2=bgamma6(ng)*sumphy*Bio(i,k,iLphy)*q10pr
       aggregs3=bgamma6(ng)*sumphy*Bio(i,k,iHphy)*q10pr
-      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
-      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
-      aggregchl3=bgamma6(ng)*sumphy*Bio(i,k,iChl3)*q10pr
+!      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
+!      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
+!      aggregchl3=bgamma6(ng)*sumphy*Bio(i,k,iChl3)*q10pr
+      aggregchl1=aggregs1*c2n(ng)*Chl2C_s1*12.0_r8
+      aggregchl2=aggregs2*c2n(ng)*Chl2C_s2*12.0_r8
+      aggregchl3=aggregs3*c2n(ng)*Chl2C_s3*12.0_r8
 #else
       sumphy=Bio(i,k,iSphy)+Bio(i,k,iLphy)
       aggregs1=bgamma6(ng)*sumphy*Bio(i,k,iSphy)*q10pr
       aggregs2=bgamma6(ng)*sumphy*Bio(i,k,iLphy)*q10pr
-      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
-      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
+!      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
+!      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
+      aggregchl1=aggregs1*c2n(ng)*Chl2C_s1*12.0_r8
+      aggregchl2=aggregs2*c2n(ng)*Chl2C_s2*12.0_r8
 #endif
 !      -------------------------------------------------------
 !     CALCULATING THE nitrification and reminalization
@@ -1050,8 +1079,8 @@
 
 !     *** Chla for s1: Xiu and Geng
 !              
-!      gchl1zz1 = gs1zz1*Bio(i,k,iChl1)/Bio(i,k,iSphy)
-	gchl1zz1 = gs1zz1*Bio(i,k,iChl1)/(Bio(i,k,iSphy)+Minval)
+!	gchl1zz1 = gs1zz1*Bio(i,k,iChl1)/(Bio(i,k,iSphy)+Minval)
+      gchl1zz1 = gs1zz1*c2n(ng)*Chl2C_s1*12.0_r8
         
       gs1zz1=gs1zz1*q10zg
       gchl1zz1=gchl1zz1*q10zg
@@ -1085,10 +1114,11 @@
             
         !     *** Chla for s2 and s3: Xiu and Geng
         !
-!        gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/Bio(i,k,iLphy)
-!        gchl3zz2 = gs3zz2*Bio(i,k,iChl3)/Bio(i,k,iHphy)
-	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
-        gchl3zz2 = gs3zz2*Bio(i,k,iChl3)/(Bio(i,k,iHphy)+Minval)
+
+!	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
+!       gchl3zz2 = gs3zz2*Bio(i,k,iChl3)/(Bio(i,k,iHphy)+Minval)
+      gchl2zz2 = gs2zz2*c2n(ng)*Chl2C_s2*12.0_r8
+      gchl3zz2 = gs3zz2*c2n(ng)*Chl2C_s3*12.0_r8
       ENDIF
       
       gs2zz2=gs2zz2*q10zg
@@ -1121,8 +1151,8 @@
             !
 !     *** Chla for s2: Xiu and Geng
 !
-!      gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/Bio(i,k,iLphy)
-	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
+!	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
+       gchl2zz2 = gs2zz2*c2n(ng)*Chl2C_s2*12.0_r8
       ENDIF
 		  
       gs2zz2=gs2zz2*q10zg
@@ -1260,32 +1290,32 @@
 !       Chla: Xiu and Geng
 !
 
-        if(Bio(i,k,iChl1) .ge. 0.01_r8) then
+!        if(Bio(i,k,iChl1) .ge. 0.01_r8) then
           Qsms14 = + npchl1 - morchl1 - gchl1zz1 - aggregchl1
 #ifdef PHYTO_RESP
 	    Qsms14 = Qsms14 - respchl1
 #endif
-        else
-          Qsms14 = npchl1
-        endif
+!        else
+!          Qsms14 = npchl1
+!        endif
         
-        if(Bio(i,k,iChl2) .ge. 0.01_r8) then
+!        if(Bio(i,k,iChl2) .ge. 0.01_r8) then
           Qsms15 = + npchl2 - morchl2 - gchl2zz2 - aggregchl2
 #ifdef PHYTO_RESP
 	    Qsms15 = Qsms15 - respchl2
 #endif
-        else
-          Qsms15 = npchl2
-        endif
+!        else
+!          Qsms15 = npchl2
+!        endif
 #ifdef HAB
-        IF(Bio(i,k,iChl3) .ge. 0.01_r8) then
+!        IF(Bio(i,k,iChl3) .ge. 0.01_r8) then
             Qsms17 = + npchl3 - morchl3 - gchl3zz2 - aggregchl3
 # ifdef PHYTO_RESP
 		Qsms17 = Qsms17 - respchl3
 # endif
-        ELSE
-            Qsms17 = npchl3
-        ENDIF
+!        ELSE
+!            Qsms17 = npchl3
+!        ENDIF
 #endif
        
 #ifdef DIAGNOSTICS_BIO
