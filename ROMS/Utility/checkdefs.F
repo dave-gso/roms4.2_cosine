@@ -744,6 +744,12 @@
 	is=LEN_TRIM(Coptions)+1
 	Coptions(is:is+11)=' PHYTO_RESP,'
 # endif
+# ifdef PCO2AIR_SEASONAL_SECULAR
+	IF (Master) WRITE (stdout,20) 'PCO2AIR_SEASONAL_SECULAR',         &
+     &   'pCO2air seasonal cycle plus linear trend'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+11)=' PCO2AIR_SEASONAL_SECULAR,'
+# endif
 
 #endif
 #if defined BNORM && defined HESSIAN_SV

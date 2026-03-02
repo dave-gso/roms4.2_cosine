@@ -149,6 +149,10 @@
             Npts=load_r(Nval, Rval, Ngrids, wsdsi)
           CASE('wsp') 
             Npts=load_r(Nval, Rval, Ngrids, wsp)
+#ifdef RIVER_SEDIMENT
+	    CASE('wsrsed') 
+            Npts=load_r(Nval, Rval, Ngrids, wsrsed)
+#endif
           CASE('pco2a') 
             Npts=load_r(Nval, Rval, Ngrids, pco2a)
           CASE('si2n') 
@@ -1050,6 +1054,10 @@
      &            'Sinking velocity of detritus silicate [m/day].'
             WRITE (out,100) wsp(ng), 'wsp',                            &
      &            'Sinking velocity of large phytoplankton [m/day].'
+#ifdef RIVER_SEDIMENT
+            WRITE (out,100) wsrsed(ng), 'wsrsed',                      &
+     &            'Sinking velocity of non-biogenic river sediment [m/day].'
+#endif
             WRITE (out,100) pco2a(ng), 'pco2a',                        &
      &            'Air pCO2 [ppmv].'
             WRITE (out,100) si2n(ng), 'si2n',                          &

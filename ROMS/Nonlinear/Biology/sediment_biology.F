@@ -72,10 +72,10 @@
 !                       dAlk, bAlk, JAlk
 
       USE mod_kinds
-      USE mod_biology, ONLY : bUmax,bUmaxSi,bdep,balpha,bw,btheta_diag,&
-     &                       bnit, btheta_nit, bdo_nit, bdenit,        &
-     &                       btheta_denit, bpsi_n, bdo_c, bao2, bpi,   &
-     &                       bpsi_p, bfc, bfn, bfp, bfs
+      USE mod_biology, ONLY : bUmax,bUmaxSi,bdep,balpha,bw,btheta_diag,   &
+     &                       btheta_Si,bnit,btheta_nit,bdo_nit,bdenit,    &
+     &                       btheta_denit, bpsi_n, bdo_c, bao2, bpi,      &
+     &                       bpsi_p, bfc, bfn, bfp, bfs, p2n, o2no
       USE mod_sedbio, ONLY : nspc
 
       implicit none
@@ -174,7 +174,7 @@
 ! local variables:
 
       integer :: i, k
-      real(r8) :: Qt
+      real(r8) :: Qt, Qtsi
       real(r8), dimension(nspc) :: JPOC
       real(r8), dimension(nspc) :: JPON
       real(r8), dimension(nspc) :: JPOP
@@ -182,49 +182,64 @@
       real(r8) :: stc, CSOD, NSOD, Jnit, Jdenit, JCO2, O2, DOxyg
       real(r8) :: JAlk_sed
 
-      real(r8) :: w2, cff, cff1, cff2, cff3
+      real(r8) :: w2, cff, cff1, cff2, cff3, D, B
       real(r8), parameter :: TR = 20.0_r8
       real(r8), parameter :: eps = 1.0e-10_r8
       real(r8), parameter :: o2conv = 32.0e-03_r8
 
       w2=bw(ng)*2.74e-5_r8   ! conversion from cm/yr to m/day
-!
-!-----------------------------------------------------------------------
-! Compute diagenesis flux (mmol/m3/day) and update POM concentration
-!-----------------------------------------------------------------------
-!
+
         cff=dtdays/bdep(ng)
         DO i=Istr,Iend
 # ifdef MASKING
           IF( rmask(i).gt.0.0) THEN
 # endif
-!		if( bUS(i,1).lt.0.1_r8 ) then
-!			write(*,*)'i=',i,'bUS(i,1)=',bUS(i,1)
-!		end if
 ! if near-bottom DOX is less than zero, make it zero:
             DOxyg=max(DOX(i),0.0_r8)
 !            O2=DOX(i)*o2conv !mmol.m-3 to mg/L
             O2=DOxyg*o2conv !mmol.m-3 to mg/L
             Qt=btheta_diag(ng)**(temp(i)-TR)
+            Qtsi=btheta_Si(ng)**(temp(i)-TR)
             DO k=1,nspc
-!        Diagenesis flux (mmol/m3/day)
-                JPOC(k)=bUC(i,k)*bPOC(i,k)*Qt
-                JPON(k)=bUN(i,k)*bPON(i,k)*Qt
-                JPOP(k)=bUP(i,k)*bPOP(i,k)*Qt
-                JPSi(k)=bUS(i,k)*bPSi(i,k)*Qt
-!        POM concentration (mmol/m3)
-                bPOC(i,k)=bPOC(i,k)+FPOC(i)*bfc(ng,k)*cff            &
-     &                      -JPOC(k)*dtdays-w2*bPOC(i,k)*cff
-                bPON(i,k)=bPON(i,k)+FPON(i)*bfn(ng,k)*cff            &
-     &                      -JPON(k)*dtdays-w2*bPON(i,k)*cff
-                bPOP(i,k)=bPOP(i,k)+FPOP(i)*bfp(ng,k)*cff            &
-     &                      -JPOP(k)*dtdays-w2*bPOP(i,k)*cff
-                bPSi(i,k)=bPSi(i,k)+FPSi(i)*bfs(ng,k)*cff            &
-     &                      -JPSi(k)*dtdays-w2*bPSi(i,k)*cff
+!        update sediment POM concentrations in response to deposition (source term)
+                bPOC(i,k)=bPOC(i,k)+FPOC(i)*bfc(ng,k)*cff
+                bPON(i,k)=bPON(i,k)+FPON(i)*bfn(ng,k)*cff
+                bPOP(i,k)=bPOP(i,k)+FPOP(i)*bfp(ng,k)*cff
+                bPSi(i,k)=bPSi(i,k)+FPSi(i)*bfs(ng,k)*cff
+!        update sediment POM concentrations in response to diagenesis and burial
+!        get diagenesis fluxes
+                cff1=bUC(i,k)*Qt*dtdays
+                cff2=w2*cff
+                bPOC(i,k)=bPOC(i,k)/(1.0_r8+cff1+cff2)
+                ! diagenesis flux (mmol/m3):
+                JPOC(k)=cff1*bPOC(i,k)
+                cff1=bUN(i,k)*Qt*dtdays
+                bPON(i,k)=bPON(i,k)/(1.0_r8+cff1+cff2)
+                ! diagenesis flux:
+                JPON(k)=cff1*bPON(i,k)
+                cff1=bUP(i,k)*Qt*dtdays
+                bPOP(i,k)=bPOP(i,k)/(1.0_r8+cff1+cff2)
+                ! diagenesis flux:
+                JPOP(k)=cff1*bPOP(i,k)
+                cff1=bUS(i,k)*Qtsi*dtdays
+                bPSi(i,k)=bPSi(i,k)/(1.0_r8+cff1+cff2)
+                ! diagenesis flux:
+                JPSi(k)=cff1*bPSi(i,k)
             END DO
-!        Nutrient fluxes and SOD (mmol/m2/day)
-            Jnit=bNH4(i)*bnit(ng)*(O2/(O2+bdo_nit(ng)))*               &
-     &           btheta_nit(ng)**(temp(i)-TR)
+! update porewater concentrations due to diagenesis fluxes (note that TIC and Alk handled below)
+            cff1=0.0_r8
+            cff2=0.0_r8
+            cff3=0.0_r8
+            DO k=1,nspc
+                cff1=cff1+JPON(k)
+                cff2=cff2+JPOP(k)
+                cff3=cff3+JPSi(k)
+            END DO
+            bNH4(i)=bNH4(i)+cff1
+            bPO4(i)=bPO4(i)+cff2
+            bSi(i)=bSi(i)+cff3
+            
+!          CSOD needs to be computed prior to denitrification
             CSOD=0.0_r8
             DO k=1,nspc
                 CSOD=CSOD+JPOC(k)
@@ -232,6 +247,41 @@
             CSOD=CSOD*(O2/(O2+bdo_c(ng)))*bdep(ng)
             ! JCO2: flux of carbon from POC remineralization into sediment pore water
             JCO2 = CSOD
+            
+!        Nitrification (source of NO3, sink of NH4)
+            cff1=bnit(ng)*dtdays*(O2/(O2+bdo_nit(ng)))*btheta_nit(ng)**(temp(i)-TR)
+            bNH4(i)=bNH4(i)/(1.0_r8+cff1)
+!        Nitrification flux (units mmol N/m^3)
+            Jnit=cff1*bNH4(i)
+            bNO3(i)=bNO3(i)+Jnit
+
+!        Denitrification (sink of NO3, goes to N2 gas, so simply a loss term)
+            cff1=dtdays*bdenit(ng)*(btheta_denit(ng)**(temp(i)-TR))*   &
+     &           exp(-O2/bpsi_n(ng))
+            IF( cff1*bNO3(i).lt.0.8_r8*CSOD/bdep(ng) ) THEN
+             ! treat implicitly
+	          bNO3(i)=bNO3(i)/(1.0_r8+cff1)
+		ELSE
+		 ! treat explicitly since in this case Jdenit doesn't depend on bNO3 
+		    Jdenit=0.8_r8*CSOD/bdep(ng)
+		    bNO3(i)=bNO3(i)-Jdenit
+		END IF
+!            IF (bNO3(i).gt.0.0_r8) THEN
+!                Jdenit=min(dtdays*bdenit(ng)*                    &
+!     &                      (btheta_denit(ng)**(temp(i)-TR))*    &
+!     &                       exp(-O2/bpsi_n(ng))*bNO3(i),        &
+!     &                       0.8_r8*CSOD/bdep(ng))
+!                bNO3(i)=bNO3(i)-Jdenit
+!            END IF
+
+!        SOD (mmol/m2)
+!            CSOD=0.0_r8
+!            DO k=1,nspc
+!                CSOD=CSOD+JPOC(k)
+!            END DO
+!            CSOD=CSOD*(O2/(O2+bdo_c(ng)))*bdep(ng)
+            ! JCO2: flux of carbon from POC remineralization into sediment pore water
+!            JCO2 = CSOD
             ! write out CSOD and JCO2
 !            write(*,*) 'CSOD = ', CSOD, 'JCO2 = ', JCO2
             NSOD=bao2(ng)*Jnit*bdep(ng)
@@ -247,70 +297,47 @@
             ! Supposedly this is based on Redfield, need to ask Hongjie for
             ! an actual source
             ! TA is consumed as oxygen is consumed so check the sign
-            JAlk_sed = CSOD * (-17.0_r8/138.0_r8) - NSOD
+            D = o2no(ng)
+            B = p2n(ng)
+            JAlk_sed = CSOD * (-(B+1)/D) - NSOD
+!            JAlk_sed = CSOD * (-17.0_r8/138.0_r8) - NSOD
+!         Update porewater TIC and Alk
+#ifdef CARBON
+            bTIC(i)=bTIC(i) + JCO2/bdep(ng) 
+#ifdef TALK_NONCONSERV
+            bAlk(i) = bAlk(i) + JAlk_sed/bdep(ng)
+#endif
+#endif
 
-!        Nutrient fluxes
-!            stc=SOD(i)/max(DOX(i),1.0e-6_r8)
+!        convert SOD to units of mmol/m2/day
+            SOD(i)=SOD(i)/dtdays
+!        Sediment-water Nutrient fluxes
+!         exchange coefficient (m/day):
             stc=SOD(i)/max(DOxyg,1.0e-6_r8)
-            JNO3(i)=stc*(bNO3(i)-dNO3(i))
-            JNH4(i)=stc*(bNH4(i)-dNH4(i))
+            cff1=stc*dtdays/bdep(ng)
+!         changes in porewater concentration due to fluxes:
+            bNO3(i)=bNO3(i)/(1.0_r8+cff1)+cff1*dNO3(i)/(1.0_r8+cff1)
+            bNH4(i)=bNH4(i)/(1.0_r8+cff1)+cff1*dNH4(i)/(1.0_r8+cff1)
+            bSi(i)=bSi(i)/(1.0_r8+cff1)+cff1*dSiO4(i)/(1.0_r8+cff1)
             cff=bpi(ng)*exp(-O2/bpsi_p(ng))
-            JPO4(i)=stc*(bPO4(i)*cff-dPO4(i))
-            JSi(i)=stc*(bSi(i)-dSiO4(i))
+            bPO4(i)=bPO4(i)/(1.0_r8+cff*cff1)+cff1*dPO4(i)/(1.0_r8+cff*cff1)
 #ifdef CARBON
-            JTIC(i) = stc * (bTIC(i) - dTIC(i))
-!            write(*,*) 'JTIC = ', JTIC
-#ifdef TALK_NONCONSERV
-            JAlk(i) = stc * (bAlk(i) - dAlk(i))
-            !IF (i.eq.100) THEN
-            !     write(*,*) 'JAlk = ', JAlk(i)
-            !END IF 
+            bTIC(i)=bTIC(i)/(1.0_r8+cff1)+cff1*dTIC(i)/(1.0_r8+cff1)
+# ifdef TALK_NONCONSERV
+            bAlk(i)=bAlk(i)/(1.0_r8+cff1)+cff1*dAlk(i)/(1.0_r8+cff1)
+# endif
 #endif
-#endif
-!        Update pore water nutrient concentrations
-            cff=dtdays/bdep(ng)
-            bNO3(i)=bNO3(i)+Jnit*dtdays-JNO3(i)*cff
-            IF (bNO3(i).gt.0.0_r8) THEN
-!                Jdenit=min(bdenit(ng)*btheta_denit(ng)**(temp(i)-TR)*    &
-!     &                  exp(-O2/bpsi_n(ng))*dNO3(i),0.8_r8*CSOD/bdep(ng))
-		Jdenit=min(bdenit(ng)*btheta_denit(ng)**(temp(i)-TR)*    &
-     &                  exp(-O2/bpsi_n(ng))*bNO3(i),0.8_r8*CSOD/bdep(ng))
-                bNO3(i)=bNO3(i)-Jdenit*dtdays
-            END IF
-
-            cff1=0.0_r8
-            cff2=0.0_r8
-            cff3=0.0_r8
-            DO k=1,nspc
-                cff1=cff1+JPON(k)
-                cff2=cff2+JPOP(k)
-                cff3=cff3+JPSi(k)
-            END DO
-            bNH4(i)=bNH4(i)+cff1*dtdays-Jnit*dtdays-JNH4(i)*cff
-            bPO4(i)=bPO4(i)+cff2*dtdays-JPO4(i)*cff
-            bSi(i)=bSi(i)+cff3*dtdays-JSi(i)*cff
+!          fluxes (multiply by layer thickness (bdep) and divide by dtdays to get mmol/m2/day)
+            JNO3(i)=cff1*bdep(ng)*(bNO3(i)-dNO3(i))/dtdays 
+            JNH4(i)=cff1*bdep(ng)*(bNH4(i)-dNH4(i))/dtdays 
+            JSi(i)=cff1*bdep(ng)*(bSi(i)-dSiO4(i))/dtdays           
+            JPO4(i)=cff1*bdep(ng)*(bPO4(i)*cff-dPO4(i))/dtdays
 #ifdef CARBON
-            ! bTIC
-            ! Sources: JCO2
-            ! Sink: flux of TIC out of sediment = JTIC
-            bTIC(i)=bTIC(i) + JCO2 * cff - JTIC(i) * cff
-#ifdef TALK_NONCONSERV
-            ! bAlk
-            ! Sources: JAlk_sed
-            ! Sink: flux of Alk out of sediment = JAlk
-            bAlk(i) = bAlk(i) + JAlk_sed * cff - JAlk(i) * cff
+            JTIC(i) = cff1*bdep(ng)*(bTIC(i) - dTIC(i))/dtdays
+# ifdef TALK_NONCONSERV
+            JAlk(i) = cff1*bdep(ng)*(bAlk(i) - dAlk(i))/dtdays
+# endif
 #endif
-#endif
-#ifdef CARBON
-           ! JTIC(i) = stc * (bTIC(i) - dTIC(i))
-           ! write(*,*) 'JTIC(i) = ', JTIC(i)
-           ! write(*,*) 'stc = ', stc
-           ! write(*,*) 'bTIC(i)-dTIC(i) =', bTIC(i), '-', dTIC(i)
-#ifdef TALK_NONCONSERV
-           ! JAlk(i) = stc * (bAlk(i) - dAlk(i))
-#endif
-#endif
-
 !         ensure that concentrations are >= 0
             bNO3(i)=max(bNO3(i),0.0_r8)
             bNH4(i)=max(bNH4(i),0.0_r8)
@@ -318,7 +345,6 @@
             bSi(i)=max(bSi(i),0.0_r8)
 #ifdef CARBON
             bTIC(i) = max(bTIC(i),0.0_r8)
-           ! write(*,*) 'bTIC(i) = ', bTIC(i)
 #ifdef TALK_NONCONSERV
             bAlk(i) = max(bAlk(i),0.0_r8)
 #endif
@@ -337,21 +363,16 @@
      &              -FPON(i)*bfn(ng,k)*dtdays*bUN(i,k)/bPON(i,k)/bdep(ng)
                 bUP(i,k)=bUP(i,k)+balpha(ng)*bUmax(ng,k)*bUP(i,k)*dtdays &
      &              -FPOP(i)*bfp(ng,k)*dtdays*bUP(i,k)/bPOP(i,k)/bdep(ng)
-!                bUS(i,k)=bUS(i,k)+balpha(ng)*bUmax(ng,k)*bUS(i,k)*dtdays &
-!     &              -FPSi(i)*bfs(ng,k)*dtdays*bUS(i,k)/bPSi(i,k)/bdep(ng)
-!         for silicate, decay rates are not bacterially-mediated, so
-!           set to max values
+!         for silicate, decay rates are not bacterially-mediated, so set to max values
                 bUS(i,k)=bUmaxSi(ng,k)
 !         apply limits to decay rates and ensure positivity
                 bUC(i,k)=max( min(bUC(i,k),bUmax(ng,k)),0.0_r8 )
                 bUN(i,k)=max( min(bUN(i,k),bUmax(ng,k)),0.0_r8 )
                 bUP(i,k)=max( min(bUP(i,k),bUmax(ng,k)),0.0_r8 )
-!                bUS(i,k)=max( min(bUS(i,k),bUmax(ng,k)),0.0_r8 )
 !         if particulate concentration < eps, then set decay rate to max value
                 if( bPOC(i,k).lt.eps) bUC(i,k)=bUmax(ng,k)
                 if( bPON(i,k).lt.eps) bUN(i,k)=bUmax(ng,k)
                 if( bPOP(i,k).lt.eps) bUP(i,k)=bUmax(ng,k)
-!                if( bPSi(i,k).lt.eps) bUS(i,k)=bUmax(ng,k)
             END DO
 
 # ifdef MASKING

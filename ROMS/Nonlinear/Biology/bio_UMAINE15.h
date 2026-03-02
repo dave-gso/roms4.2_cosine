@@ -20,7 +20,7 @@
 !    iSphy      Small Phytoplankton                                    !
 !    iLphy      Diatoms                                                !
 !    iSzoo      Micro Zooplankton                                      !
-!    iLphy      Meso Zooplankton                                       !
+!    iLzoo      Meso Zooplankton                                       !
 !    iSDet      Detritus-nitrogen                                      !
 !    iopal      Detritus-silicate                                      !
 !    iPH4_      Phosphate                                              !
@@ -215,6 +215,9 @@
 	USE mp_exchange_mod, ONLY : mp_exchange3d, mp_exchange4d
 # endif
 #endif
+#if defined CARBON && defined PCO2AIR_SEASONAL_SECULAR
+      USE dateclock_mod, ONLY : caldate
+#endif
 
 !
 !  Imported variable declarations.
@@ -321,10 +324,18 @@
 !
 !  Local variable declarations.
 !
-#ifdef HAB
-      integer, parameter :: Nsink = 8
+#ifdef RIVER_SEDIMENT
+# ifdef HAB
+      integer, parameter :: Nsink = 9
+# else
+      integer, parameter :: Nsink = 7
+# endif
 #else
+# ifdef HAB
+      integer, parameter :: Nsink = 8
+# else
       integer, parameter :: Nsink = 6
+# endif
 #endif
 #if defined OXYGEN || defined CARBON
       real(r8) :: u10squ, u10spd
@@ -338,9 +349,7 @@
       real(r8), parameter :: zeptic = 100.0_r8
 
       real(r8) :: dtdays
-
-      real(r8) :: cff, cff0, cff1
-
+      real(r8) :: cff,cff0,cff1,cff2,cff3,cff4,cff5,cff6,cff7
       real(r8), dimension(Nsink) :: Wbio
 
       real(r8), dimension(LBi:UBi) :: PARsur
@@ -416,6 +425,11 @@
 ! parameters controling light inhibition of nitrification (W/m^2)
       real(r8), parameter :: II00 = 0.0095_r8
       real(r8), parameter :: KI_nitrif = 0.10_r8
+#ifdef TALK_NONCONSERV
+! parameter relating TAlk change per unit phosphate change (includes
+!  the effect of sulfate)
+      real(r8), parameter :: ta2po4 = 5.8_r8
+#endif
 
       real(r8), dimension(N(ng)) :: sinkindx
 
@@ -426,35 +440,28 @@
       real(r8) :: uno3s2, unh4s2, uno3s1,usio4s2,upo4s2,uco2s2
       real(r8) :: xco2_in,gno3s1,gnh4s1,gno3s2,gnh4s2,gsio4s2
       real(r8) :: nps1,rps1,nps2,rps2,morts1,morts2,excrz1
-      real(r8) :: excrz2,remvz2,nitrif,midd,middsi
+      real(r8) :: excrz2,remvz2,nitrif,remin,reminsi
       real(r8) :: gs1zz1,ro8,ro9,gs2zz2,gzz1zz2,gddzz2,gtzz2
-      real(r8) :: Qsms1,Qsms2,Qsms3,Qsms4,Qsms5,Qsms6,Qsms7
-      real(r8) :: Qsms8,Qsms9,Qsms10,Qsms11,Qsms12,Qsms13
-      real(r8) :: NQsms1,NQsms2,NQsms3,NQsms4,NQsms5,NQsms6,NQsms7
-      real(r8) :: NQsms8,NQsms9,NQsms10,NQsms11,NQsms12,NQsms13
-      real(r8) :: sms1,sms2,sms3,sms4,sms5,sms6,sms7,SOC
-      real(r8) :: sms8,sms9,sms10,sms11,sms12,sms13
+      real(r8) :: SOC
       
       real(r8) :: npchl1,npchl2,gchl1zz1,gchl2zz2,morchl1,morchl2
-      real(r8) :: Qsms14,Qsms15,NQsms14,NQsms15,sms14,sms15
       real(r8) :: Chl2C_s1,Chl2C_s2,excrz1_2,excrz2_2
       real(r8) :: aggregs1,aggregs2,aggregchl1,aggregchl2,sumphy
-      real(r8) :: Chl2ns1_m,Chl2ns2_m
+      real(r8) :: Chl2ns1_m,Chl2ns2_m,r_chl
 #ifdef PHYTO_RESP
-      real(r8) :: resps1,resps2,respchl1,respchl2
+      real(r8) :: resps1,resps2,resps1g,resps2g,respchl1,respchl2
 #endif
 #ifdef HAB
       real(r8) :: alts3,grows3,unh4s3,uno3s3,usio4s3,upo4s3,uco2s3
       real(r8) :: gno3s3,gnh4s3,gsio4s3,pnh4s3
       real(r8) :: nps3,rps3,morts3,cents3
       real(r8) :: npchl3,gchl3zz3,morchl3
-      real(r8) :: Qsms16,Qsms17,NQsms16,NQsms17,sms16,sms17
       real(r8) :: Chl2C_s3
       real(r8) :: aggregs3,aggregchl3
       real(r8) :: gs3zz2,gchl3zz2
       real(r8) :: Chl2ns3_m
 # ifdef PHYTO_RESP
-      real(r8) :: resps3,respchl3
+      real(r8) :: resps3,resps3g,respchl3
 # endif
 #endif
       
@@ -472,8 +479,26 @@
       real(r8), dimension(LBi:UBi) :: FPOP
       real(r8), dimension(LBi:UBi) :: FPSi
 #endif
+#ifdef CARBON
+      real(r8) :: pCO2atm
+# ifdef PCO2AIR_SEASONAL_SECULAR
+	integer :: year
+	real(r8) :: yday
+	real(r8) :: ddate
+	real(r8), parameter :: pi2 = 6.2831853071796_r8
+	real(r8), parameter :: c1 = -4257.098_r8
+	real(r8), parameter :: c2 = 2.311613_r8
+	real(r8), parameter :: c3 = 2.994462_r8
+	real(r8), parameter :: c4 = -0.298136_r8
+	integer :: wrote_co2air
+# endif
+#endif
 
 #include "set_bounds.h"
+
+#ifdef PCO2AIR_SEASONAL_SECULAR
+      wrote_co2air=0
+#endif
 
 #ifdef DIAGNOSTICS_BIO
 !
@@ -541,6 +566,13 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #ifdef HAB
       idsink(7)=iHphy
       idsink(8)=iChl3
+# ifdef RIVER_SEDIMENT
+      idsink(9)=iRsed
+# endif
+#else
+# ifdef RIVER_SEDIMENT
+      idsink(7)=iRsed
+# endif
 #endif
 !
 !  Set vertical sinking velocity vector in the same order as the
@@ -555,6 +587,13 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #ifdef HAB
       Wbio(7)=wsp3(ng)              ! iHphy
       Wbio(8)=wsp3(ng)              ! iChl3
+# ifdef RIVER_SEDIMENT
+      Wbio(9)=wsrsed(ng)
+# endif
+#else
+# ifdef RIVER_SEDIMENT
+      Wbio(7)=wsrsed(ng)
+# endif
 #endif
 #ifdef SEDBIO
 !  Extract sediment biology variables from full arrays
@@ -724,6 +763,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &                       Bio(LBi:,:,iChl1), Bio(LBi:,:,iChl2),      &
      &                       Bio(LBi:,:,iSphy), Bio(LBi:,:,iLphy),      &
      &                       Bio(LBi:,:,iSDet),                         &
+#  ifdef RIVER_SEDIMENT
+     &                       Bio(LBi:,:,iRsed),                         &
+#  endif
 #  ifdef HAB
      &                       Bio(LBi:,:,iHphy), Bio(LBi:,:,iChl3),      &
 #  endif
@@ -776,608 +818,699 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       q10zr=exp(a5(ng)*(Bio(i,k,itemp)-15.0_r8))	! zoopl respiration
       q10zg=exp(a6(ng)*(Bio(i,k,itemp)-15.0_r8))	! zoopl grazing
       q10ni=exp(a7(ng)*(Bio(i,k,itemp)-15.0_r8))	! nitrification
-!
-!-----------------------------------------------------------------------
-!     CALCULATING THE OXIDATION RATE OF ORGANIC MATTER
-!-----------------------------------------------------------------------
-!
-!  Any biology processes that consume oxygen will be limited by the
-!  availability of dissolved oxygen.
-!
-#ifdef OXYGEN
-      OXR = Bio(i,k,iOxyg)/(Bio(i,k,iOxyg)+AKOX(ng))
-#else
-      OXR = 1.0_r8
-#endif
-!
-!-----------------------------------------------------------------------
-!     CALCULATING THE GROWTH RATE AS NO3,NH4, AND LIGHT;
-!     GRAZING, PARTICLE SINKING AND REGENERATION
-!-----------------------------------------------------------------------
-!
+
 !-----------------------------------------------------------------------
 !  small phytoplankton nutrient uptake, and growth
 !-----------------------------------------------------------------------
+!   sink for: NO3, NH4, PO4, SiOH, TIC
+!   source for: Sphy, Chl1, O2
+!   source/sink for: TAlk
 
 !  nitrogen limited growth
-	pnh4s1=exp(-pis1(ng)*Bio(i,k,iNH4_))
-
-!another option
-!    pnh4s1=	1.0_r8/(1.0_r8+Bio(i,k,iNH4_)/aknh4s1(ng))
+      pnh4s1=exp(-pis1(ng)*Bio(i,k,iNH4_))
 	
-    uno3s1 = pnh4s1*Bio(i,k,iNO3_)/(akno3s1(ng)+Bio(i,k,iNO3_))
-    unh4s1 = Bio(i,k,iNH4_)/(aknh4s1(ng)+Bio(i,k,iNH4_))
+      uno3s1 = pnh4s1*Bio(i,k,iNO3_)/(akno3s1(ng)+Bio(i,k,iNO3_))
+      unh4s1 = Bio(i,k,iNH4_)/(aknh4s1(ng)+Bio(i,k,iNH4_))
+      upo4s1=Bio(i,k,iPO4_)/(akpo4s1(ng)+Bio(i,k,iPO4_))
 
-!  phosphate limited growth
-	upo4s1=Bio(i,k,iPO4_)/(akpo4s1(ng)+Bio(i,k,iPO4_))
-	
-!  tco2 limited growth
-#ifdef CARBON
-	uco2s1=Bio(i,k,iTIC_)/(akco2s1(ng)+Bio(i,k,iTIC_))
-#else
-	uco2s1=1.0_r8
-#endif
-
-! light adaption if you dont have chloropyll variable
-!    alts1= 1.0_r8 - exp(-PAR(i,k)*(ADPT(i,k)/40.0_r8)/gmaxs1(ng))
-!
-
-! if you have chloropyll variable
-
-    alts1=1.0_r8 - exp(-PAR(i,k)*amaxs1(ng)/gmaxs1(ng))   
-
-!    alts1=amaxs1(ng)*PAR(i,k)/sqrt(gmaxs1(ng)*gmaxs1(ng)+   &
-!   &             amaxs1(ng)*PAR(i,k)*amaxs1(ng)*PAR(i,k))
-   
+! light adaptation
+      alts1=1.0_r8 - exp(-PAR(i,k)*amaxs1(ng)/gmaxs1(ng))   
       
-! growth
-    
-    grows1=min(uno3s1+unh4s1,upo4s1)*alts1
+      grows1=min(uno3s1+unh4s1,upo4s1)*alts1
+! uptake parameters for NO3 and NH4    
+      cff4=dtdays*gmaxs1(ng)*q10pp*grows1*pnh4s1*Bio(i,k,iSphy)/         &
+     &     (max(uno3s1 + unh4s1,Minval)*(akno3s1(ng)+Bio(i,k,iNO3_)))
+      cff5=dtdays*gmaxs1(ng)*q10pp*grows1*Bio(i,k,iSphy)/                &
+     &     (max(uno3s1 + unh4s1,Minval)*(aknh4s1(ng)+Bio(i,k,iNH4_)))
+! uptake parameter for PO4 that ensures that uptake ratio is equal to p2n: 
+      cff=cff4*Bio(i,k,iNO3_)/(1.0_r8+cff4) + cff5*Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      cff6=cff/max((Bio(i,k,iPO4_)/p2n(ng) - cff),Minval)
 
-!! adjustments
-!
-    cents1=grows1/(uno3s1+unh4s1+Minval)
-    uno3s1=cents1*uno3s1
-    unh4s1=cents1*unh4s1
-    upo4s1=grows1
-    uco2s1=grows1
+! nitrate, ammonium, phosphate uptake
+      Bio(i,k,iNO3_)=Bio(i,k,iNO3_)/(1.0_r8+cff4)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)/(1.0_r8+cff6)
+      
+! small phyto new and regenerated production (using updated no3 and nh4)
+      nps1=cff4*Bio(i,k,iNO3_)
+      rps1=cff5*Bio(i,k,iNH4_)
+      
+! chlorophyll/carbon ratio:
+!      Chl2C_s1=Bio(i,k,iChl1)/max((Bio(i,k,iSphy)*c2n(ng)*12.0_r8),Minval) 
+! regulatory ratio (geider 1997) (ratio of production to production that would
+!                                 occur if all light harvesting capability were used)
+      r_chl=(nps1+rps1)/max(amaxs1(ng)*PAR(i,k)*Bio(i,k,iSphy)*q10pp*dtdays,Minval)  
+! chlorophyll production
+!      npchl1=Chl2cs1_m(ng)*r_chl*(nps1+rps1)
+      npchl1=Chl2ns1_m*r_chl*(nps1+rps1)
+! update biomass and chlorophyll       
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)+nps1+rps1 
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)+npchl1
+! update oxygen, TIC, alkalinity
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)+nps1*o2no(ng)+rps1*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)-(nps1+rps1)*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate uptake (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+nps1-rps1 + ta2po4*p2n(ng)*(nps1+rps1)
+# endif
+#endif
 !
 !-----------------------------------------------------------------------
 !  diatom nutrient uptake, and growth
 !-----------------------------------------------------------------------
-!
-    pnh4s2= exp(-pis2(ng)*Bio(i,k,iNH4_))
-!another option
-!    pnh4s2=	1.0_r8/(1.0_r8+Bio(i,k,iNH4_)/aknh4s2(ng))
+!   sink for: NO3, NH4, PO4, SiOH, TIC
+!   source for: Lphy, Chl2, O2
+!   source/sink for: TAlk
+
+      pnh4s2= exp(-pis2(ng)*Bio(i,k,iNH4_))
     
-    uno3s2 = pnh4s2*Bio(i,k,iNO3_)/(akno3s2(ng)+Bio(i,k,iNO3_))
-    unh4s2 = Bio(i,k,iNH4_)/(aknh4s2(ng)+Bio(i,k,iNH4_))
-    usio4s2 = Bio(i,k,iSiOH)/(aksio4s2(ng)+Bio(i,k,iSiOH))
-    upo4s2 = Bio(i,k,iPO4_)/(akpo4s2(ng)+Bio(i,k,iPO4_))
-!  tco2 limited growth
-#ifdef CARBON
-    uco2s2 = Bio(i,k,iTIC_)/(akco2s2(ng)+Bio(i,k,iTIC_))
-#else
-	uco2s2=1.0_r8
+      uno3s2 = pnh4s2*Bio(i,k,iNO3_)/(akno3s2(ng)+Bio(i,k,iNO3_))
+      unh4s2 = Bio(i,k,iNH4_)/(aknh4s2(ng)+Bio(i,k,iNH4_))
+      usio4s2 = Bio(i,k,iSiOH)/(aksio4s2(ng)+Bio(i,k,iSiOH))
+      upo4s2 = Bio(i,k,iPO4_)/(akpo4s2(ng)+Bio(i,k,iPO4_))
+
+! light adaptation 
+      alts2=1.0_r8 - exp(-PAR(i,k)*amaxs2(ng)/gmaxs2(ng))
+
+      grows2=min(uno3s2+unh4s2,usio4s2,upo4s2)*alts2
+! uptake parameters for NO3 and NH4 
+      cff4=dtdays*gmaxs2(ng)*q10pp*grows2*pnh4s1*Bio(i,k,iLphy)/         &
+     &     (max(uno3s2 + unh4s2,Minval)*(akno3s2(ng)+Bio(i,k,iNO3_)))
+      cff5=dtdays*gmaxs2(ng)*q10pp*grows2*Bio(i,k,iLphy)/                &
+     &     (max(uno3s2 + unh4s2,Minval)*(aknh4s2(ng)+Bio(i,k,iNH4_)))
+! uptake parameters for PO4 and SiOH that ensure that uptake ratios are equal to
+! p2n and si2n:     
+      cff=cff4*Bio(i,k,iNO3_)/(1.0_r8+cff4) + cff5*Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      cff6=cff/max((Bio(i,k,iPO4_)/p2n(ng) - cff),Minval)
+      cff7=cff/max((Bio(i,k,iSiOH)/si2n(ng) - cff),Minval)
+      
+! nitrate, ammonium, phosphate, silicate uptake
+      Bio(i,k,iNO3_)=Bio(i,k,iNO3_)/(1.0_r8+cff4)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)/(1.0_r8+cff6)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)/(1.0_r8+cff7)
+      
+! diatom new and regenerated production (using updated no3 and nh4)
+      nps2=cff4*Bio(i,k,iNO3_)
+      rps2=cff5*Bio(i,k,iNH4_)
+      
+! chlorophyll/carbon ratio:
+!      Chl2C_s2=Bio(i,k,iChl2)/max((Bio(i,k,iLphy)*c2n(ng)*12.0_r8),Minval) 
+! regulatory ratio (geider 1997) (ratio of production to production that would
+!                                 occur if all light harvesting capability were used)
+      r_chl=(nps2+rps2)/max(amaxs2(ng)*PAR(i,k)*Bio(i,k,iLphy)*q10pp*dtdays,Minval)  
+! chlorophyll production
+!      npchl2=Chl2cs2_m(ng)*r_chl*(nps2+rps2)
+      npchl2=Chl2ns2_m*r_chl*(nps2+rps2)
+! update biomass and chlorophyll       
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)+nps2+rps2 
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)+npchl2
+! update oxygen, TIC, alkalinity
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)+nps2*o2no(ng)+rps2*o2nh(ng)
 #endif
-
-! light adaption if you dont have chloropyll variable
-!    alts2= 1.0_r8 - exp(-PAR(i,k)*(ADPT(i,k)/40.0_r8)/gmaxs2(ng))
-!if you have chloropyll variable
-    alts2=1.0_r8 - exp(-PAR(i,k)*amaxs2(ng)/gmaxs2(ng))
-    
-!    alts2=amaxs2(ng)*PAR(i,k)/sqrt(gmaxs2(ng)*gmaxs2(ng)+   &
-!   &             amaxs2(ng)*PAR(i,k)*amaxs2(ng)*PAR(i,k))
-
-! careful with this limitation term for diatoms
-
-    grows2=min(uno3s2+unh4s2,usio4s2,upo4s2)*alts2
-!    grows2=usio4s2*alts2
-
-    cents2=grows2/(uno3s2+unh4s2+Minval)
-    uno3s2=cents2*uno3s2
-    unh4s2=cents2*unh4s2
-    
-    usio4s2=grows2
-    upo4s2=grows2
-    uco2s2=grows2
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)-(nps2+rps2)*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate uptake (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+nps2-rps2 + ta2po4*p2n(ng)*(nps2+rps2)
+# endif
+#endif  
+       
 #ifdef HAB
 !
 !-----------------------------------------------------------------------
 !  HAB phyto nutrient uptake, and growth
 !-----------------------------------------------------------------------
-!
-    pnh4s3= exp(-pis3(ng)*Bio(i,k,iNH4_))
-!another option
-!    pnh4s3=    1.0_r8/(1.0_r8+Bio(i,k,iNH4_)/aknh4s3(ng))
+!   sink for: NO3, NH4, PO4, SiOH, TIC
+!   source for: Hphy, Chl3, O2
+!   source/sink for: TAlk
+
+      pnh4s3= exp(-pis3(ng)*Bio(i,k,iNH4_))
                   
-    uno3s3 = pnh4s3*Bio(i,k,iNO3_)/(akno3s3(ng)+Bio(i,k,iNO3_))
-    unh4s3 = Bio(i,k,iNH4_)/(aknh4s3(ng)+Bio(i,k,iNH4_))
-    usio4s3 = Bio(i,k,iSiOH)/(aksio4s3(ng)+Bio(i,k,iSiOH))
-    upo4s3 = Bio(i,k,iPO4_)/(akpo4s3(ng)+Bio(i,k,iPO4_))
-!  tco2 limited growth
-# ifdef CARBON
-    uco2s3 = Bio(i,k,iTIC_)/(akco2s3(ng)+Bio(i,k,iTIC_))
-# else
-    uco2s3=1.0_r8
-# endif
+      uno3s3 = pnh4s3*Bio(i,k,iNO3_)/(akno3s3(ng)+Bio(i,k,iNO3_))
+      unh4s3 = Bio(i,k,iNH4_)/(aknh4s3(ng)+Bio(i,k,iNH4_))
+      usio4s3 = Bio(i,k,iSiOH)/(aksio4s3(ng)+Bio(i,k,iSiOH))
+      upo4s3 = Bio(i,k,iPO4_)/(akpo4s3(ng)+Bio(i,k,iPO4_))
 
-! light adaption if you dont have chloropyll variable
-!    alts2= 1.0_r8 - exp(-PAR(i,k)*(ADPT(i,k)/40.0_r8)/gmaxs2(ng))
-!if you have chloropyll variable
-    alts3=1.0_r8 - exp(-PAR(i,k)*amaxs3(ng)/gmaxs3(ng))
-                  
-!    alts3=amaxs3(ng)*PAR(i,k)/sqrt(gmaxs3(ng)*gmaxs3(ng)+   &
-!   &             amaxs3(ng)*PAR(i,k)*amaxs3(ng)*PAR(i,k))
+! light adaptation
+      alts3=1.0_r8 - exp(-PAR(i,k)*amaxs3(ng)/gmaxs3(ng))
 
-! careful with this limitation term for diatoms
-
-    grows3=min(uno3s3+unh4s3,usio4s3,upo4s3)*alts3
-!    grows3=usio4s3*alts3
-
-    cents3=grows3/(uno3s3+unh4s3+Minval)
-    uno3s3=cents3*uno3s3
-    unh4s3=cents3*unh4s3
-                  
-    usio4s3=grows3
-    upo4s3=grows3
-    uco2s3=grows3
-#endif
-    
-! uptake     
-    gno3s1  = gmaxs1(ng)*uno3s1   
-    gnh4s1  = gmaxs1(ng)*unh4s1
-    gno3s2  = gmaxs2(ng)*uno3s2
-    gnh4s2  = gmaxs2(ng)*unh4s2
-    gsio4s2 = gmaxs2(ng)*usio4s2
-#ifdef HAB
-    gno3s3  = gmaxs3(ng)*uno3s3
-    gnh4s3  = gmaxs3(ng)*unh4s3
-    gsio4s3 = gmaxs3(ng)*usio4s3
-#endif
-              
-!     -------------------------------------------------------
-!     CALCULATING THE NEW,REGENERATED,AND PRIMARY PRODUCTION 
-!     -------------------------------------------------------
-      nps1 =  gno3s1 * Bio(i,k,iSphy) * q10pp
-      rps1 =  gnh4s1 * Bio(i,k,iSphy) * q10pp
-      nps2 =  gno3s2 * Bio(i,k,iLphy)  * q10pp
-      rps2 =  gnh4s2 * Bio(i,k,iLphy) * q10pp
-#ifdef PHYTO_RESP
-!     phytoplankton respiration (basal plus growth related)
-      resps1=(rrb1(ng)*Bio(i,k,iSphy) + rrg1(ng)*(nps1+rps1))*q10pr
-      resps2=(rrb2(ng)*Bio(i,k,iLphy) + rrg2(ng)*(nps2+rps2))*q10pr
-#endif
-#ifdef HAB
-      nps3 =  gno3s3 * Bio(i,k,iHphy) * q10pp
-      rps3 =  gnh4s3 * Bio(i,k,iHphy) * q10pp
-# ifdef PHYTO_RESP
-!     phytoplankton respiration (basal plus growth related)
-      resps3=(rrb3(ng)*Bio(i,k,iHphy) + rrg3(ng)*(nps3+rps3))*q10pr
-# endif
-#endif
-!      
-!     *** Chla for s1: Xiu and Geng ***  npchl1; npchl2; Chl2cs1_m(ng); Chl2cs2_m(ng)
-!
-
-      cff=c2n(ng)*12.0_r8
-!      Chl2C_s1=MIN(Bio(i,k,iChl1)/(Bio(i,k,iSphy)*cff+Minval),  &
-!     &                    Chl2cs1_m(ng))     
-!      Chl2C_s2=MIN(Bio(i,k,iChl2)/(Bio(i,k,iLphy)*cff+Minval),  &
-!     &                    Chl2cs2_m(ng))
-! not enforcing max chl:C ratio:
-      Chl2C_s1=Bio(i,k,iChl1)/(Bio(i,k,iSphy)*cff+Minval)
-      Chl2C_s2=Bio(i,k,iChl2)/(Bio(i,k,iLphy)*cff+Minval)
-#ifdef HAB
-!      Chl2C_s3=MIN(Bio(i,k,iChl3)/(Bio(i,k,iHphy)*cff+Minval),  &
-!     &                    Chl2cs3_m(ng))
-      Chl2C_s3=Bio(i,k,iChl3)/(Bio(i,k,iHphy)*cff+Minval)
-#endif
-!      npchl1=(gno3s1+gnh4s1)*(gno3s1+gnh4s1)*Chl2cs1_m(ng)      &
-!     &   *Bio(i,k,iChl1)/                             &
-!     &   (amaxs1(ng)*MAX(Chl2C_s1,Minval)*PAR(i,k)+Minval)
-!
-!      npchl2=(gno3s2+gnh4s2)*(gno3s2+gnh4s2)*Chl2cs2_m(ng)     &
-!     &   *Bio(i,k,iChl2)/                             &
-!     &   (amaxs2(ng)*MAX(Chl2C_s2,Minval)*PAR(i,k)+Minval)
-      
-      npchl1=(gno3s1+gnh4s1)*(gno3s1+gnh4s1)*Chl2ns1_m         &
-     &   *Bio(i,k,iSphy)/                                      &
-     &   (amaxs1(ng)*PAR(i,k)+Minval)
-      npchl2=(gno3s2+gnh4s2)*(gno3s2+gnh4s2)*Chl2ns2_m         &
-     &   *Bio(i,k,iLphy)/                                      &
-     &   (amaxs2(ng)*PAR(i,k)+Minval)
-     		  
-      npchl1=npchl1*q10pp
-      npchl2=npchl2*q10pp
-#ifdef PHYTO_RESP
-	respchl1=resps1*c2n(ng)*Chl2C_s1*12.0_r8*q10pr
-      respchl2=resps2*c2n(ng)*Chl2C_s2*12.0_r8*q10pr	  
-#endif
-#ifdef HAB
-!      npchl3=(gno3s3+gnh4s3)*(gno3s3+gnh4s3)*Chl2cs3_m(ng)     &
-!     &   *Bio(i,k,iChl3)/                             &
-!     &   (amaxs3(ng)*MAX(Chl2C_s3,Minval)*PAR(i,k)+Minval)
-      npchl3=(gno3s3+gnh4s3)*(gno3s3+gnh4s3)*Chl2ns3_m         &
-     &   *Bio(i,k,iHphy)/                                      &
-     &   (amaxs3(ng)*PAR(i,k)+Minval)
-      npchl3=npchl3*q10pp
-# ifdef PHYTO_RESP
-      respchl3=resps3*c2n(ng)*Chl2C_s3*12.0_r8*q10pr
-# endif
-#endif
-
-!     -------------------------------------------------------
-!     CALCULATING THE mortality of phyto and zoopl
-!     -------------------------------------------------------
-! use respiration q10s
-      morts1=bgamma3(ng)*Bio(i,k,iSphy)*q10pr
-      morts2=bgamma4(ng)*Bio(i,k,iLphy)*q10pr
-#ifdef HAB
-      morts3=bgamma4s3(ng)*Bio(i,k,iHphy)*q10pr
-#endif
-      remvz2 = bgamma0(ng)*Bio(i,k,iLzoo)*Bio(i,k,iLzoo)*q10zr
-
-!     *** Chla for s1 and s2: Xiu and Geng
-!
-!       morchl1=bgamma3(ng)*Bio(i,k,iChl1)*q10pr
-!       morchl2=bgamma4(ng)*Bio(i,k,iChl2)*q10pr
-       morchl1=morts1*c2n(ng)*Chl2C_s1*12.0_r8
-       morchl2=morts2*c2n(ng)*Chl2C_s2*12.0_r8
-#ifdef HAB
-!       morchl3=bgamma4s3(ng)*Bio(i,k,iChl3)*q10pr
-       morchl3=morts3*c2n(ng)*Chl2C_s3*12.0_r8
-#endif
-      
-! aggregates
-!  use respiration q10 
-#ifdef HAB
-      sumphy=Bio(i,k,iSphy)+Bio(i,k,iLphy)+Bio(i,k,iHphy)
-      aggregs1=bgamma6(ng)*sumphy*Bio(i,k,iSphy)*q10pr
-      aggregs2=bgamma6(ng)*sumphy*Bio(i,k,iLphy)*q10pr
-      aggregs3=bgamma6(ng)*sumphy*Bio(i,k,iHphy)*q10pr
-!      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
-!      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
-!      aggregchl3=bgamma6(ng)*sumphy*Bio(i,k,iChl3)*q10pr
-      aggregchl1=aggregs1*c2n(ng)*Chl2C_s1*12.0_r8
-      aggregchl2=aggregs2*c2n(ng)*Chl2C_s2*12.0_r8
-      aggregchl3=aggregs3*c2n(ng)*Chl2C_s3*12.0_r8
-#else
-      sumphy=Bio(i,k,iSphy)+Bio(i,k,iLphy)
-      aggregs1=bgamma6(ng)*sumphy*Bio(i,k,iSphy)*q10pr
-      aggregs2=bgamma6(ng)*sumphy*Bio(i,k,iLphy)*q10pr
-!      aggregchl1=bgamma6(ng)*sumphy*Bio(i,k,iChl1)*q10pr
-!      aggregchl2=bgamma6(ng)*sumphy*Bio(i,k,iChl2)*q10pr
-      aggregchl1=aggregs1*c2n(ng)*Chl2C_s1*12.0_r8
-      aggregchl2=aggregs2*c2n(ng)*Chl2C_s2*12.0_r8
-#endif
-!      -------------------------------------------------------
-!     CALCULATING THE nitrification and reminalization
-!     -------------------------------------------------------
-! formulation in which light inhibits nitrification
-        nitrif = bgamma7(ng)*(1.0_r8-max(0.0_r8,(PAR(i,k)-II00)/   &
-     &       (KI_nitrif+PAR(i,k)-II00)))*Bio(i,k,iNH4_)
-	nitrif=nitrif*q10ni
-		  
-! remineralization (nitrogenous detritus)
-      cent1=bgamma5(ng)
-      midd = cent1*Bio(i,k,iSDet)*q10br
-      
-! remineralization (silicious detritus)
-      cent1=bgamma5s(ng)
-      middsi = cent1*Bio(i,k,iopal)*q10od
-           
-!     -------------------------------------------------------
-!     CALCULATING THE GRAZING RATE
-!     -------------------------------------------------------
-! type II, michaelis-menten:
-!      gs1zz1 = beta1(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSphy)                 &
-!              &    /(akz1(ng)+Bio(i,k,iSphy))
-! type III, michaelis-menten:
-        gs1zz1 = beta1(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSphy)*Bio(i,k,iSphy) &
-     &    /(akz1(ng)*akz1(ng)+Bio(i,k,iSphy)*Bio(i,k,iSphy))
-
-!     *** Chla for s1: Xiu and Geng
-!              
-!	gchl1zz1 = gs1zz1*Bio(i,k,iChl1)/(Bio(i,k,iSphy)+Minval)
-      gchl1zz1 = gs1zz1*c2n(ng)*Chl2C_s1*12.0_r8
+      grows3=min(uno3s3+unh4s3,usio4s3,upo4s3)*alts3
+! uptake parameters for NO3 and NH4 
+      cff4=dtdays*gmaxs3(ng)*q10pp*grows3*pnh4s3*Bio(i,k,iHphy)/         &
+     &     (max(uno3s3 + unh4s3,Minval)*(akno3s3(ng)+Bio(i,k,iNO3_)))
+      cff5=dtdays*gmaxs3(ng)*q10pp*grows3*Bio(i,k,iHphy)/                &
+     &     (max(uno3s3 + unh4s3,Minval)*(aknh4s3(ng)+Bio(i,k,iNH4_)))
+! uptake parameters for PO4 and SiOH that ensure that uptake ratios are equal to
+! p2n and si2n:     
+      cff=cff4*Bio(i,k,iNO3_)/(1.0_r8+cff4) + cff5*Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      cff6=cff/max((Bio(i,k,iPO4_)/p2n(ng) - cff),Minval)
+      cff7=cff/max((Bio(i,k,iSiOH)/si2n(ng) - cff),Minval)
         
-      gs1zz1=gs1zz1*q10zg
-      gchl1zz1=gchl1zz1*q10zg
-		  
-! type III, michaelis-menten
-#ifdef HAB
-!      ro8=ro5(ng)*Bio(i,k,iLphy)+ro6(ng)*Bio(i,k,iSzoo)                &
-!     & +ro7(ng)*Bio(i,k,iSDet) +ro5H(ng)*Bio(i,k,iHphy)
-      ro9=ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)                        &
-     & +ro6(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSzoo)                          &
-     & +ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)                          &
-     & +ro5H(ng)*Bio(i,k,iHphy)*Bio(i,k,iHphy)
+! nitrate, ammonium, phosphate, silicate uptake
+      Bio(i,k,iNO3_)=Bio(i,k,iNO3_)/(1.0_r8+cff4)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)/(1.0_r8+cff5)
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)/(1.0_r8+cff6)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)/(1.0_r8+cff7)
 
-!      if((ro8 .le. 0.0_r8) .and. (ro9 .le. 0.0_r8))then
-      IF( ro9 .le. 0.0_r8 )then
-        gs2zz2  = 0.0_r8
-        gs3zz2  = 0.0_r8
-        gddzz2  = 0.0_r8
-        gzz1zz2 = 0.0_r8
-        gchl2zz2 = 0.0_r8    ! Xiu and Geng
-        gchl3zz2 = 0.0_r8
-      ELSE
-        gs2zz2= beta2(ng)*ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)        &
-     & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-        gs3zz2= beta2(ng)*ro5H(ng)*Bio(i,k,iHphy)*Bio(i,k,iHphy)       &
-     & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-        gzz1zz2=beta2(ng)*ro6(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSzoo)        &
-     & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-        gddzz2=beta2(ng)*ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)         &
-     & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-            
-        !     *** Chla for s2 and s3: Xiu and Geng
-        !
-
-!	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
-!       gchl3zz2 = gs3zz2*Bio(i,k,iChl3)/(Bio(i,k,iHphy)+Minval)
-      gchl2zz2 = gs2zz2*c2n(ng)*Chl2C_s2*12.0_r8
-      gchl3zz2 = gs3zz2*c2n(ng)*Chl2C_s3*12.0_r8
-      ENDIF
+! HAB phyto new and regenerated production (using updated no3 and nh4)
+      nps3=cff4*Bio(i,k,iNO3_)
+      rps3=cff5*Bio(i,k,iNH4_)
       
-      gs2zz2=gs2zz2*q10zg
-      gs3zz2=gs3zz2*q10zg
-      gzz1zz2=gzz1zz2*q10zg
-      gddzz2=gddzz2*q10zg
-      gchl2zz2=gchl2zz2*q10zg
-      gchl3zz2=gchl3zz2*q10zg
-#else
-!      ro8=ro5(ng)*Bio(i,k,iLphy)+ro6(ng)*Bio(i,k,iSzoo)                &
-!              & +ro7(ng)*Bio(i,k,iSDet)
-      ro9=ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)+ro6(ng)                &
-            & *Bio(i,k,iSzoo)*Bio(i,k,iSzoo)                           &
-            & +ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)
-
- !     if((ro8 .le. 0.0_r8) .and. (ro9 .le. 0.0_r8))then
-      IF( ro9 .le. 0.0_r8 )then
-           gs2zz2  = 0.0_r8
-           gddzz2  = 0.0_r8
-           gzz1zz2 = 0.0_r8
-           gchl2zz2 = 0.0_r8    ! Xiu and Geng
-      ELSE
-      gs2zz2= beta2(ng)*ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)          &
-           & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-      gzz1zz2=beta2(ng)*ro6(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSzoo)          &
-            & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-      gddzz2=beta2(ng)*ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)           &
-            & *Bio(i,k,iLzoo)/(akz2(ng)*akz2(ng)+ro9)
-            
-            !
-!     *** Chla for s2: Xiu and Geng
-!
-!	  gchl2zz2 = gs2zz2*Bio(i,k,iChl2)/(Bio(i,k,iLphy)+Minval)
-       gchl2zz2 = gs2zz2*c2n(ng)*Chl2C_s2*12.0_r8
-      ENDIF
-		  
-      gs2zz2=gs2zz2*q10zg
-      gzz1zz2=gzz1zz2*q10zg
-      gddzz2=gddzz2*q10zg
-      gchl2zz2=gchl2zz2*q10zg
+! chlorophyll/carbon ratio:
+!      Chl2C_s3=Bio(i,k,iChl3)/max((Bio(i,k,iHphy)*c2n(ng)*12.0_r8),Minval) 
+! regulatory ratio (geider 1997) (ratio of production to production that would
+!                                 occur if all light harvesting capability were used)
+      r_chl=(nps3+rps3)/max(amaxs3(ng)*PAR(i,k)*Bio(i,k,iHphy)*q10pp*dtdays,Minval)  
+! chlorophyll production
+!      npchl3=Chl2cs3_m(ng)*r_chl*(nps3+rps3)
+      npchl3=Chl2ns3_m*r_chl*(nps3+rps3)
+! update biomass and chlorophyll       
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)+nps3+rps3 
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)+npchl3
+! update oxygen, TIC, alkalinity
+# ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)+nps3*o2no(ng)+rps3*o2nh(ng)
+# endif
+# ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)-(nps3+rps3)*c2n(ng)
+#  ifdef TALK_NONCONSERV
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+nps3-rps3
+! TAlk change including phosphate uptake (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+nps3-rps3 + ta2po4*p2n(ng)*(nps3+rps3)
+#  endif
+# endif      
 #endif
-
-! critical values to stop grazing (shouldn't be needed for type III grazing)
-!    IF(Bio(i,k,iSphy) .le. 0.005_r8)then
-!        gs1zz1=0.0_r8
-!        gchl1zz1=0.0_r8    ! Xiu and Geng
-!    ENDIF
-!    IF(Bio(i,k,iLphy) .le. 0.005_r8)then
-!        gs2zz2=0.0_r8
-!        gchl2zz2=0.0_r8    ! Xiu and Geng
-!    ENDIF
-          
-! total grazing for large zoo
-
-   gtzz2 =  gddzz2 + gzz1zz2 + gs2zz2
-#ifdef HAB
-!       IF(Bio(i,k,iHphy) .le. 0.005_r8) then
-!              gs3zz2=0.0_r8
-!              gchl3zz2=0.0_r8
-!       ENDIF
-       gtzz2=gtzz2 + gs3zz2
-#endif
-
-! Excretion by zooplankton
-!  use q10 for respiration
-!   basal excretion
-       excrz1=reg1(ng)*Bio(i,k,iSzoo)*q10zr
-       excrz2=reg2(ng)*Bio(i,k,iLzoo)*q10zr
-               
-! ingestion related excretion (from Fennel 2006)
-!  this is a fraction of the grazing rate
-       excrz1_2=bgamma1(ng)*reg1(ng)*gs1zz1/beta1(ng)
-       excrz2_2=bgamma2(ng)*reg2(ng)*gtzz2/beta2(ng)
-					     
-       excrz1_2=excrz1_2*q10zr
-       excrz2_2=excrz2_2*q10zr
               
-!sediment o2 consumption
-! moved below calculation of sinking flux and, if SEDBIO defined, calculation
-!  of sediment oxygen demand.
-
-!  this next expression is the one used in the provided code (DU 8/9/21)
-!  SOC is now computed in subroutine sediment_bio (SOD)
-!     SOC=0.614_r8*(2.0_r8**(Bio(i,k,itemp)/5.474_r8))
-     
-        Qsms1 = - nps1 - nps2 + OXR*nitrif
-        Qsms3 = - rps1 - rps2 + OXR*excrz1 + OXR*excrz2             &
-     &          - OXR*nitrif+OXR*midd+OXR*(excrz1_2+excrz2_2)
-     
-        Qsms4 = + nps1 + rps1 - gs1zz1 - morts1 - aggregs1 
-        Qsms5 = + nps2 + rps2 - gs2zz2 - morts2 - aggregs2
-        Qsms6 = + bgamma1(ng)*gs1zz1 - OXR*excrz1 - gzz1zz2 -OXR*excrz1_2
-        Qsms7 = + bgamma2(ng)*gtzz2 - OXR*excrz2 - remvz2   -OXR*excrz2_2
-        Qsms8 = + (1-bgamma1(ng))*gs1zz1 + (1-bgamma2(ng))*gtzz2       &
-     &             - gddzz2+ morts1 + morts2- OXR*midd+ remvz2   &
-     &             + aggregs1 + aggregs2
-     
-        Qsms2 = - (nps2 + rps2)*si2n(ng) + middsi
-        Qsms9 = (gs2zz2 + morts2+aggregs2)*si2n(ng) - middsi
-!        Qsms10= - (nps1+rps1+nps2+rps2)*p2n(ng)                        &
-!     &          +OXR*(excrz1+excrz2)*p2n(ng)+ OXR*midd*p2n(ng)
-! added effect of ingestion-related excretion
-        Qsms10= - (nps1+rps1+nps2+rps2)*p2n(ng)                        &
-     &          +OXR*(excrz1+excrz2+excrz1_2+excrz2_2)*p2n(ng)         &
-     &          + OXR*midd*p2n(ng)
 #ifdef PHYTO_RESP
-        Qsms4 = Qsms4 - OXR*resps1
-        Qsms5 = Qsms5 - OXR*resps2
-        Qsms3 = Qsms3 + OXR*(resps1 + resps2)
-        Qsms10 = Qsms10 + OXR*(resps1 + resps2)*p2n(ng)
-!        Qsms2 = Qsms2 + OXR*(resps1+resps2)*si2n(ng)
-        Qsms2 = Qsms2 + OXR*resps2*si2n(ng)
-#endif
-#ifdef HAB
-!  note that detritus here does not get the sloppy-feeding part as this
-!  is included in gtzz2 above. likewise excretion above includes the HAB part,
-!  so no need to include here:
-        Qsms1 = Qsms1 - nps3
-        Qsms3 = Qsms3 - rps3
-        Qsms8 = Qsms8 + morts3 + aggregs3
-        Qsms2 = Qsms2 - (nps3 + rps3)*si2n(ng)
-        Qsms9 = Qsms9 + (gs3zz2 + morts3 + aggregs3)*si2n(ng)
-        Qsms10 = Qsms10 - (nps3 + rps3)*p2n(ng)
-        Qsms16 = + nps3 + rps3 - gs3zz2 - morts3 - aggregs3     ! HAB
-# ifdef PHYTO_RESP
-        Qsms16 = Qsms16 - OXR*resps3
-        Qsms3 = Qsms3 + OXR*resps3
-        Qsms10 = Qsms10 + OXR*resps3*p2n(ng)
-        Qsms2 = Qsms2 + OXR*resps3*si2n(ng)
+!-----------------------------------------------------------------------
+!  Phytoplankton Respiration
+!-----------------------------------------------------------------------
+
+# ifdef OXYGEN
+      OXR = Bio(i,k,iOxyg)/(Bio(i,k,iOxyg)+AKOX(ng))
+# else
+      OXR=1.0_r8
 # endif
-#endif
-#ifdef OXYGEN
-!        Qsms11 = (nps1+nps2)*o2no(ng)+(rps1+rps2)*o2nh(ng)             &
-!     &         -2.0_r8*OXR*nitrif - OXR*(excrz1 + excrz2)*o2nh(ng)     &
-!     &         - OXR*midd*o2nh(ng)
-! added effect of ingestion-related excretion
-        Qsms11 = (nps1+nps2)*o2no(ng)+(rps1+rps2)*o2nh(ng)             &
-     &         -2.0_r8*OXR*nitrif - OXR*(excrz1 + excrz2)*o2nh(ng)     &
-     &         -OXR*(excrz1_2+excrz2_2)*o2nh(ng)- OXR*midd*o2nh(ng)
-# ifdef PHYTO_RESP
-        Qsms11 = Qsms11 - OXR*( resps1 + resps2 )*o2nh(ng)                          
+
+! Growth-dependent Respiration
+! explicit, since this is a fraction of growth and cannot produce negative phyto concentration
+! (phyto concentration above has been incremented by growth)
+!   sink for: Phy, Chl, O2
+!   source for: NH4, PO4, SiOH, TIC, TAlk
+
+! small phytoplankton respiration (growth-dependent)
+      Chl2C_s1=Bio(i,k,iChl1)/max((Bio(i,k,iSphy)*c2n(ng)*12.0_r8),Minval)
+      resps1g=OXR*rrg1(ng)*q10pr*(nps1+rps1)
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)-resps1g
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps1g
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps1g*p2n(ng)
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)-resps1g*Chl2C_s1*c2n(ng)*12.0_r8
+# ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps1g*o2nh(ng)
 # endif
-#  ifdef HAB
-        Qsms11 = Qsms11 + nps3*o2no(ng) + rps3*o2nh(ng)
-#   ifdef PHYTO_RESP
-        Qsms11 = Qsms11 - OXR*resps3*o2nh(ng)                          
+# ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps1g*c2n(ng)
+#  ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps1g - ta2po4*p2n(ng)*resps1g
+#  endif
+# endif
+
+! diatom respiration (growth-dependent)
+      Chl2C_s2=Bio(i,k,iChl2)/max((Bio(i,k,iLphy)*c2n(ng)*12.0_r8),Minval) 
+      resps2g=OXR*rrg2(ng)*q10pr*(nps2+rps2)
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)-resps2g
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps2g
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps2g*p2n(ng)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+resps2g*si2n(ng)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)-resps2g*Chl2C_s2*c2n(ng)*12.0_r8
+# ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps2g*o2nh(ng)
+# endif
+# ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps2g*c2n(ng)
+#  ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps2g - ta2po4*p2n(ng)*resps2g
+#  endif
+# endif
+
+# ifdef HAB
+! HAB phytoplankton respiration (growth-dependent)
+      Chl2C_s3=Bio(i,k,iChl3)/max((Bio(i,k,iHphy)*c2n(ng)*12.0_r8),Minval) 
+      resps3g=OXR*rrg3(ng)*q10pr*(nps3+rps3)
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)-resps3g
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps3g 
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps3g*p2n(ng)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+resps3g*si2n(ng)     
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)-resps3g*Chl2C_s3*c2n(ng)*12.0_r8
+#  ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps3g*o2nh(ng)
+#  endif
+#  ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps3g*c2n(ng)
+#   ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps3g - ta2po4*p2n(ng)*resps3g
 #   endif
 #  endif
-#endif
-
-#ifdef CARBON
-!        Qsms12= - (nps1+rps1+nps2+rps2)*c2n(ng)+OXR*(excrz1+excrz2)    &
-!     &          *c2n(ng)+ OXR*midd*c2n(ng)
-! added effect of ingestion-related excretion
-         Qsms12= - (nps1+rps1+nps2+rps2)*c2n(ng)+ OXR*midd*c2n(ng)    &
-     &           +OXR*(excrz1+excrz2+excrz1_2+excrz2_2)*c2n(ng)
-# ifdef PHYTO_RESP
-         Qsms12 = Qsms12 + OXR*(resps1 +resps2)*c2n(ng)                            
 # endif
-        Qsms13= - Qsms1 + Qsms3
-#  ifdef HAB
-        Qsms12 = Qsms12 - (nps3 + rps3)*c2n(ng)
-#    ifdef PHYTO_RESP
-        Qsms12 = Qsms12 + OXR*resps3*c2n(ng)                            
-#    endif
+
+! Basal Respiration
+!     small phytoplankton respiration (basal)
+!       implicit for phytoplankton and chlorophyll (but not O2)
+!   sink for: Phy, Chl, O2
+!   source for: NH4, PO4, SiOH, TIC, TAlk
+
+      cff=dtdays*q10pr
+      cff1=OXR*rrb1(ng)*cff
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)/(1.0_r8+cff1)
+      resps1=cff1*Bio(i,k,iSphy)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps1
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps1*p2n(ng)
+      
+      cff2=resps1/max(Bio(i,k,iSphy),Minval)
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)/(1.0_r8+cff2)
+# ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps1*o2nh(ng)
+# endif
+# ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps1*c2n(ng)
+#  ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps1 - ta2po4*p2n(ng)*resps1
 #  endif
-#endif
-!
-!       Chla: Xiu and Geng
-!
-
-!        if(Bio(i,k,iChl1) .ge. 0.01_r8) then
-          Qsms14 = + npchl1 - morchl1 - gchl1zz1 - aggregchl1
-#ifdef PHYTO_RESP
-	    Qsms14 = Qsms14 - respchl1
-#endif
-!        else
-!          Qsms14 = npchl1
-!        endif
-        
-!        if(Bio(i,k,iChl2) .ge. 0.01_r8) then
-          Qsms15 = + npchl2 - morchl2 - gchl2zz2 - aggregchl2
-#ifdef PHYTO_RESP
-	    Qsms15 = Qsms15 - respchl2
-#endif
-!        else
-!          Qsms15 = npchl2
-!        endif
-#ifdef HAB
-!        IF(Bio(i,k,iChl3) .ge. 0.01_r8) then
-            Qsms17 = + npchl3 - morchl3 - gchl3zz2 - aggregchl3
-# ifdef PHYTO_RESP
-		Qsms17 = Qsms17 - respchl3
 # endif
-!        ELSE
-!            Qsms17 = npchl3
-!        ENDIF
+!     diatom respiration (basal)
+!       implicit for phytoplankton and chlorophyll (but not O2)
+    
+      cff1=OXR*rrb2(ng)*cff
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)/(1.0_r8+cff1)
+      resps2=cff1*Bio(i,k,iLphy)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps2
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps2*p2n(ng)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+resps2*si2n(ng)
+      
+      cff2=resps2/max(Bio(i,k,iLphy),Minval)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)/(1.0_r8+cff2)
+# ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps2*o2nh(ng)
+# endif
+# ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps2*c2n(ng)
+#  ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps2 - ta2po4*p2n(ng)*resps2
+#  endif
+# endif
+# ifdef HAB
+!     HAB phyto respiration (basal)
+!       implicit for phytoplankton and chlorophyll (but not O2)
+    
+      cff1=OXR*rrb3(ng)*cff
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)/(1.0_r8+cff1)
+      resps3=cff1*Bio(i,k,iHphy)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+resps3
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+resps3*p2n(ng)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+resps3*si2n(ng)
+      
+      cff2=resps1/max(Bio(i,k,iHphy),Minval)
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)/(1.0_r8+cff2)
+#  ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-resps3*o2nh(ng)
+#  endif
+#  ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+resps3*c2n(ng)
+#   ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + resps3 - ta2po4*p2n(ng)*resps3
+#   endif
+#  endif
+# endif      
 #endif
-       
+
+!     -------------------------------------------------------
+!     Mortality of phytoplankton
+!     -------------------------------------------------------
+!   sink for: Phy, Chl
+!   source for: SDet, opal
+
+! use respiration q10
+      cff=dtdays*q10pr
+! small phyto
+      cff1=bgamma3(ng)*cff
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)/(1.0_r8+cff1)
+      morts1=cff1*Bio(i,k,iSphy)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+morts1
+! chlorophyll treated implicitly (but using new phyto biomass)
+      cff2=morts1/max(Bio(i,k,iSphy),Minval)
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)/(1.0_r8+cff2)
+      
+! diatom
+      cff1=bgamma4(ng)*cff
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)/(1.0_r8+cff1)
+      morts2=cff1*Bio(i,k,iLphy)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+morts2
+      Bio(i,k,iopal)=Bio(i,k,iopal)+morts2*si2n(ng)
+! chlorophyll treated implicitly (but using new phyto biomass)
+      cff2=morts2/max(Bio(i,k,iLphy),Minval)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)/(1.0_r8+cff2)      
+#ifdef HAB 
+! HAB phyto
+      cff1=bgamma4s3(ng)*cff
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)/(1.0_r8+cff1)
+      morts3=cff1*Bio(i,k,Hphy)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+morts3
+      Bio(i,k,iopal)=Bio(i,k,iopal)+morts3*si2n(ng)
+! chlorophyll treated implicitly (but using new phyto biomass)
+      cff2=morts3/max(Bio(i,k,iHphy),Minval)
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)/(1.0_r8+cff2)
+#endif  
+    
+!     -------------------------------------------------------
+!     aggregation of phytoplankton (use respiration q10)
+!     -------------------------------------------------------
+!   sink for: Phy, Chl
+!   source for: SDet, opal
+
+#ifdef HAB
+      sumphy=Bio(i,k,iSphy)+Bio(i,k,iLphy)+Bio(i,k,iHphy)
+#else
+      sumphy=Bio(i,k,iSphy)+Bio(i,k,iLphy)  
+#endif
+!    small phyto
+      cff1=bgamma6(ng)*sumphy*cff
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)/(1.0_r8+cff1)
+      aggregs1=cff1*Bio(i,k,iSphy)
+      cff2=aggregs1/max(Bio(i,k,iSphy),Minval)
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)/(1.0_r8+cff2)
+!    diatom
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)/(1.0_r8+cff1)
+      aggregs2=cff1*Bio(i,k,iLphy)
+      cff2=aggregs2/max(Bio(i,k,iLphy),Minval)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)/(1.0_r8+cff2)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+aggregs1+aggregs2
+      Bio(i,k,iopal)=Bio(i,k,iopal)+aggregs2*si2n(ng)
+#ifdef HAB
+!    HAB phyto
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)/(1.0_r8+cff1)
+      aggregs3=cff1*Bio(i,k,iHphy)
+      cff2=aggregs3/max(Bio(i,k,iHphy),Minval)
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)/(1.0_r8+cff2)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+aggregs3
+      Bio(i,k,iopal)=Bio(i,k,iopal)+aggregs3*si2n(ng)
+#endif      
+!     -------------------------------------------------------      
+! remineralization of detritus
+!     -------------------------------------------------------
+!   sink for: SDet, opal, O2
+!   source for: NH4, PO4, SiOH, TIC, TAlk
+
+#ifdef OXYGEN
+      OXR = Bio(i,k,iOxyg)/(Bio(i,k,iOxyg)+AKOX(ng))
+#else
+      OXR=1.0_r8
+#endif
+!  nitrogenous detritus
+      cff1=bgamma5(ng)*q10br*dtdays*OXR
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)/(1.0_r8+cff1)
+      remin=cff1*Bio(i,k,iSDet)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+remin
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+remin*p2n(ng)
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-remin*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+remin*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + remin - ta2po4*p2n(ng)*remin
+# endif
+#endif
+!  siliceous detritus (opal)
+      cff1=bgamma5s(ng)*q10od*dtdays
+      Bio(i,k,iopal)=Bio(i,k,iopal)/(1.0_r8+cff1)
+      reminsi=cff1*Bio(i,k,iopal)
+      Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+reminsi
+      
+!     -------------------------------------------------------
+! nitrification
+!     ------------------------------------------------------- 
+!   sink for: NH4, O2, TAlk
+!   source for: NO3
+
+#ifdef OXYGEN
+      OXR = Bio(i,k,iOxyg)/(Bio(i,k,iOxyg)+AKOX(ng))
+#else
+      OXR=1.0_r8
+#endif
+      cff1=bgamma7(ng)*q10ni*OXR*dtdays*(1.0_r8-                  &
+     &   max(0.0_r8,(PAR(i,k)-II00)/(KI_nitrif+PAR(i,k)-II00)))
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)/(1.0_r8+cff1)
+      nitrif=cff1*Bio(i,k,iNH4_)
+      Bio(i,k,iNO3_)=Bio(i,k,iNO3_)+nitrif
+#ifdef OXYGEN
+!     2 moles oxygen used per mole N
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-2.0_r8*nitrif
+#endif
+#ifdef TALK_NONCONSERV
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)-2.0_r8*nitrif
+#endif
+
+!     -------------------------------------------------------
+! zooplankton grazing
+!     ------------------------------------------------------- 
+!  microzooplankton grazing on small phyto.
+!   sink for: Sphy, Chl1
+!   source for: Szoo, SDet
+
+      cff1=beta1(ng)*q10zg*dtdays*Bio(i,k,iSzoo)*Bio(i,k,iSphy)/  &
+     &     (akz1(ng)*akz1(ng)+Bio(i,k,iSphy)*Bio(i,k,iSphy))
+      Bio(i,k,iSphy)=Bio(i,k,iSphy)/(1.0_r8+cff1)
+      gs1zz1=cff1*Bio(i,k,iSphy)
+      Bio(i,k,iSzoo)=Bio(i,k,iSzoo)+bgamma1(ng)*gs1zz1
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+(1.0_r8-bgamma1(ng))*gs1zz1
+      cff2=gs1zz1/max(Bio(i,k,iSphy),Minval)
+      Bio(i,k,iChl1)=Bio(i,k,iChl1)/(1.0_r8+cff2)
+      
+!  mesozooplankton grazing on diatoms, microzooplankton, detritus
+!   sink for: Lphy, Szoo, SDet, Chl2
+!   source for: Lzoo, SDet, opal
+#ifdef HAB
+      ro9=ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)+                   &
+     &    ro6(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSzoo)+                   &
+     &    ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)+                   &
+     &    ro5H(ng)*Bio(i,k,iHphy)*Bio(i,k,iHphy)
+      cff=beta2(ng)*q10zg*dtdays
+      cff1=cff*ro5(ng)*Bio(i,k,iLzoo)*Bio(i,k,iLphy)/              &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      cff2=cff*ro6(ng)*Bio(i,k,iLzoo)*Bio(i,k,iSzoo)/              &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      cff3=cff*ro7(ng)*Bio(i,k,iLzoo)*Bio(i,k,iSDet)/              &
+     &     (akz2(ng)*akz2(ng))+ro9)
+      cff4=cff*ro5H(ng)*Bio(i,k,iLzoo)*Bio(i,k,iHphy)/             &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)/(1.0_r8+cff1)
+      Bio(i,k,iSzoo)=Bio(i,k,iSzoo)/(1.0_r8+cff2)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)/(1.0_r8+cff3)
+      Bio(i,k,iHphy)=Bio(i,k,iHphy)/(1.0_r8+cff4)
+      gs2zz2=cff1*Bio(i,k,iLphy)
+      gzz1zz2=cff2*Bio(i,k,iSzoo)
+      gddzz2=cff3*Bio(i,k,iSDet)
+      gs3zz2=cff4*Bio(i,k,iHphy)
+      gtzz2=gs2zz2+gzz1zz2+gddzz2+gs3zz2
+      Bio(i,k,iLzoo)=Bio(i,k,iLzoo)+bgamma2(ng)*gtzz2
+!   add back to detritus sloppy feeding fraction of total grazing
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+(1.0_r8-bgamma2(ng))*gtzz2
+!   Si in consumed diatoms (all) returned to opal pool
+      Bio(i,k,iopal)=Bio(i,k,iopal)+(gs2zz2+gs3zz2)*si2n(ng)
+      
+      cff5=gs2zz2/max(Bio(i,k,iLphy),Minval)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)/(1.0_r8+cff5)
+      cff6=gs3zz2/max(Bio(i,k,iHphy),Minval)
+      Bio(i,k,iChl3)=Bio(i,k,iChl3)/(1.0_r8+cff6)
+#else
+      ro9=ro5(ng)*Bio(i,k,iLphy)*Bio(i,k,iLphy)+                   &
+     &    ro6(ng)*Bio(i,k,iSzoo)*Bio(i,k,iSzoo)+                   &
+     &    ro7(ng)*Bio(i,k,iSDet)*Bio(i,k,iSDet)
+      cff=beta2(ng)*q10zg*dtdays
+      cff1=cff*ro5(ng)*Bio(i,k,iLzoo)*Bio(i,k,iLphy)/              &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      cff2=cff*ro6(ng)*Bio(i,k,iLzoo)*Bio(i,k,iSzoo)/              &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      cff3=cff*ro7(ng)*Bio(i,k,iLzoo)*Bio(i,k,iSDet)/              &
+     &     (akz2(ng)*akz2(ng)+ro9)
+      Bio(i,k,iLphy)=Bio(i,k,iLphy)/(1.0_r8+cff1)
+      Bio(i,k,iSzoo)=Bio(i,k,iSzoo)/(1.0_r8+cff2)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)/(1.0_r8+cff3)
+      gs2zz2=cff1*Bio(i,k,iLphy)
+      gzz1zz2=cff2*Bio(i,k,iSzoo)
+      gddzz2=cff3*Bio(i,k,iSDet)
+      gtzz2=gs2zz2+gzz1zz2+gddzz2
+      Bio(i,k,iLzoo)=Bio(i,k,iLzoo)+bgamma2(ng)*gtzz2
+!   add back to detritus sloppy feeding fraction of total grazing
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+(1.0_r8-bgamma2(ng))*gtzz2
+!   Si in consumed diatoms (all) returned to opal pool
+      Bio(i,k,iopal)=Bio(i,k,iopal)+gs2zz2*si2n(ng)
+            
+      cff4=gs2zz2/max(Bio(i,k,iLphy),Minval)
+      Bio(i,k,iChl2)=Bio(i,k,iChl2)/(1.0_r8+cff4)
+#endif
+!     -------------------------------------------------------
+! zooplankton excretion
+!     ------------------------------------------------------- 
+!   sink for: Zoo, O2
+!   source for: NH4, PO4, TIC, TAlk
+
+#ifdef OXYGEN
+      OXR = Bio(i,k,iOxyg)/(Bio(i,k,iOxyg)+AKOX(ng))
+#else
+      OXR=1.0_r8
+#endif
+! ingestion related excretion (from Fennel 2006)
+!  this is a fraction of the grazing rate (use q10 for respiration)
+!  treated explicitly as for phyto growth-dependent respiration.
+!
+! microzooplankton:
+   excrz1_2=bgamma1(ng)*reg1(ng)*q10zr*OXR*gs1zz1/beta1(ng)
+   Bio(i,k,iSzoo)=Bio(i,k,iSzoo)-excrz1_2
+   Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+excrz1_2
+   Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+excrz1_2*p2n(ng)
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-excrz1_2*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+excrz1_2*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + excrz1_2 - ta2po4*p2n(ng)*excrz1_2
+# endif
+#endif
+! mesozooplankton:
+   excrz2_2=bgamma2(ng)*reg2(ng)*q10zr*OXR*gtzz2/beta2(ng)
+   Bio(i,k,iLzoo)=Bio(i,k,iLzoo)-excrz2_2
+   Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+excrz2_2
+   Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+excrz2_2*p2n(ng)
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-excrz2_2*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+excrz2_2*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + excrz2_2 - ta2po4*p2n(ng)*excrz2_2
+# endif
+#endif
+
+!  basal excretion (use q10 for respiration)
+!  basal excretion by microzooplankton
+      cff1=reg1(ng)*dtdays*q10zr*OXR
+      Bio(i,k,iSzoo)=Bio(i,k,iSzoo)/(1.0_r8+cff1)
+      excrz1=cff1*Bio(i,k,iSzoo)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+excrz1
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+excrz1*p2n(ng)
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-excrz1*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+excrz1*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + excrz1 - ta2po4*p2n(ng)*excrz1
+# endif
+#endif
+!  basal excretion by mesozooplankton
+      cff1=reg2(ng)*dtdays*q10zr*OXR
+      Bio(i,k,iLzoo)=Bio(i,k,iLzoo)/(1.0_r8+cff1)
+      excrz2=cff1*Bio(i,k,iLzoo)
+      Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+excrz2
+      Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+excrz2*p2n(ng)
+#ifdef OXYGEN
+      Bio(i,k,iOxyg)=Bio(i,k,iOxyg)-excrz2*o2nh(ng)
+#endif
+#ifdef CARBON
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+excrz2*c2n(ng)
+# ifdef TALK_NONCONSERV
+! TAlk change including phosphate release (ta2po4 is specified ratio)
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk) + excrz2 - ta2po4*p2n(ng)*excrz2
+# endif
+#endif
+!     -------------------------------------------------------
+! zooplankton mortality (mesozooplankton only)
+!     ------------------------------------------------------- 
+!   sink for: Lzoo
+!   source for: SDet
+
+      cff1=bgamma0(ng)*dtdays*q10zr*Bio(i,k,iLzoo)
+      Bio(i,k,iLzoo)=Bio(i,k,iLzoo)/(1.0_r8+cff1)
+      remvz2=cff1*Bio(i,k,iLzoo)
+      Bio(i,k,iSDet)=Bio(i,k,iSDet)+remvz2
+        
 #ifdef DIAGNOSTICS_BIO
         DiaBio3d(i,j,k,iPPro1)=DiaBio3d(i,j,k,iPPro1)+                 &
 # ifdef WET_DRY
      &            rmask_io(i,j)*                                       &
 # endif
-     &         (nps1 + rps1)*dtdays
+     &         (nps1 + rps1)
         
         DiaBio3d(i,j,k,iPPro2)=DiaBio3d(i,j,k,iPPro2)+                 &
 # ifdef WET_DRY
      &            rmask_io(i,j)*                                       &
 # endif        
-     &            (nps2 + rps2)*dtdays
+     &            (nps2 + rps2)
         
         DiaBio3d(i,j,k,iNO3u)=DiaBio3d(i,j,k,iNO3u)+                   &
 # ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 # endif        
-     &              (nps1+nps2)*dtdays
+     &              (nps1+nps2)
               
 # ifdef OXYGEN
         DiaBio3d(i,j,k,iO2pr)=DiaBio3d(i,j,k,iO2pr)+                   &
 #  ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #  endif
-     &   ((nps1+nps2)*o2no(ng)+(rps1+rps2)*o2nh(ng))*dtdays
+     &   ((nps1+nps2)*o2no(ng)+(rps1+rps2)*o2nh(ng))
 #  ifdef HAB
         DiaBio3d(i,j,k,iO2pr)=DiaBio3d(i,j,k,iO2pr)+                   &
 #   ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #   endif
-     &   (nps3*o2no(ng)+rps3*o2nh(ng))*dtdays
+     &   (nps3*o2no(ng)+rps3*o2nh(ng))
 #  endif
               
         DiaBio3d(i,j,k,initri)=DiaBio3d(i,j,k,initri)+                 &
 #  ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #  endif
-     &       (-2.0_r8*OXR*nitrif)*dtdays
+     &       (-2.0_r8*nitrif)
               
         DiaBio3d(i,j,k,iremin)=DiaBio3d(i,j,k,iremin)+                 &
 #  ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #  endif
-     &       (-OXR*midd*o2nh(ng))*dtdays
+     &       (-remin*o2nh(ng))
         
         DiaBio3d(i,j,k,izoopl)=DiaBio3d(i,j,k,izoopl)+                 &
 #  ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #  endif
-     &       (-OXR*(excrz1 + excrz2                                    &
-     &       +excrz1_2 + excrz2_2)*o2nh(ng)*dtdays)
+     &       (-(excrz1 + excrz2 + excrz1_2 + excrz2_2)*o2nh(ng))
 #  ifdef PHYTO_RESP    
         DiaBio3d(i,j,k,iphyres)=DiaBio3d(i,j,k,iphyres)+               &
 #   ifdef WET_DRY
      &              rmask_io(i,j)*                                     &
 #   endif 
 #   ifdef HAB
-     &       (-OXR*(resps1 + resps2 +resps3)*o2nh(ng)*dtdays)                        
+     &       (-(resps1+resps1g + resps2+resps2g +                      &
+     &          resps3+resps3g)*o2nh(ng))                        
 #   else
-     &       (-OXR*(resps1 + resps2)*o2nh(ng)*dtdays)
+     &       (-(resps1+resps1g + resps2+resps2g)*o2nh(ng))
 #   endif
 #  endif
 # endif
@@ -1391,37 +1524,6 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
         END IF
 #endif
               
-! update values 
-      
-        Bio(i,k,iNO3_)=Bio(i,k,iNO3_)+dtdays*Qsms1
-        Bio(i,k,iSiOH)=Bio(i,k,iSiOH)+dtdays*Qsms2
-        Bio(i,k,iNH4_)=Bio(i,k,iNH4_)+dtdays*Qsms3
-        Bio(i,k,iSphy)=Bio(i,k,iSphy)+dtdays*Qsms4
-        Bio(i,k,iLphy)=Bio(i,k,iLphy)+dtdays*Qsms5
-        Bio(i,k,iSzoo)=Bio(i,k,iSzoo)+dtdays*Qsms6
-        Bio(i,k,iLzoo)=Bio(i,k,iLzoo)+dtdays*Qsms7
-        Bio(i,k,iSDet)=Bio(i,k,iSDet)+dtdays*Qsms8
-        Bio(i,k,iopal)=Bio(i,k,iopal)+dtdays*Qsms9
-        Bio(i,k,iPO4_)=Bio(i,k,iPO4_)+dtdays*Qsms10
-
-#ifdef OXYGEN
-        Bio(i,k,iOxyg)=Bio(i,k,iOxyg)+dtdays*Qsms11
-#endif
-#ifdef CARBON
-        Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+dtdays*Qsms12
-# ifdef TALK_NONCONSERV
-        Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+dtdays*Qsms13
-# endif	
-#endif
-!
-!      Chla : Xiu and Geng
-!
-        Bio(i,k,iChl1)=Bio(i,k,iChl1)+dtdays*Qsms14
-        Bio(i,k,iChl2)=Bio(i,k,iChl2)+dtdays*Qsms15
-#ifdef HAB
-        Bio(i,k,iHphy)=Bio(i,k,iHphy)+dtdays*Qsms16
-        Bio(i,k,iChl3)=Bio(i,k,iChl3)+dtdays*Qsms17
-#endif
         END DO  !k loop
       END DO  !i loop
 
@@ -1507,6 +1609,17 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 !-----------------------------------------------------------------------
 !
       k=N(ng)
+#ifdef PCO2AIR_SEASONAL_SECULAR
+      CALL caldate (tdays(ng), yy_i=year, yd_dp=yday)
+      ddate=REAL(year,r8)+(yday-1.0_r8)/365.25_r8
+      pCO2atm=c1+c2*ddate+c3*sin(pi2*ddate+c4)
+      if( master.and.(wrote_co2air.eq.0).and.(MOD(iic(ng),2880).eq.0) ) then
+          write(*,*)'time=',ddate,'year=',year,'yday=',yday,'pCO2atm =',pCO2atm
+          wrote_co2air=1
+      end if
+#else
+      pCO2atm=pco2a(ng)
+#endif
 
 ! *************************************************************************
 ! AIR-SEA CO2 FLUX
@@ -1523,7 +1636,7 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &                     Bio(LBi:,k,itemp), Bio(LBi:,k,isalt),   &
      &                     Bio(LBi:,k,iTIC_), Bio(LBi:,k,iTAlk),   &
      &                     Bio(LBi:,k,iPO4_), Bio(LBi:,k,iSiOH),   &
-     &                     rho(LBi:,j,k),kw660, 1.0_r8,pco2a(ng),  &
+     &                     rho(LBi:,j,k),kw660, 1.0_r8,pCO2atm,    &
      &                     co2flx,pco2sf)
       DO i=Istr,Iend
         Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+dtdays*co2flx(i)*Hz_inv(i,k)
@@ -2849,6 +2962,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &                       chl1, chl2,                                &
      &                       s1, s2,                                    &
      &                       ddn,                                       &
+#  ifdef RIVER_SEDIMENT
+     &                       Rsed,                                      &
+#  endif
 #  ifdef HAB
      &                       s3, chl3,                                  &
 #  endif
@@ -2888,6 +3004,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       real(r8), intent(in) :: chl2(LBi:,:)
       real(r8), intent(in) :: s1(LBi:,:)
       real(r8), intent(in) :: s2(LBi:,:)
+#   ifdef RIVER_SEDIMENT
+      real(r8), intent(in) :: Rsed(LBi:,:)
+#   endif
 #   ifdef HAB
       real(r8), intent(in) :: s3(LBi:,:)
       real(r8), intent(in) :: chl3(LBi:,:)
@@ -2908,6 +3027,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       real(r8), intent(in) :: chl2(LBi:UBi,N(ng))
       real(r8), intent(in) :: s1(LBi:UBi,N(ng))
       real(r8), intent(in) :: s2(LBi:UBi,N(ng))
+#   ifdef RIVER_SEDIMENT
+      real(r8), intent(in) :: Rsed(LBi:UBi,N(ng))
+#   endif
 #   ifdef HAB
       real(r8), intent(in) :: s3(LBi:UBi,N(ng))
       real(r8), intent(in) :: chl3(LBi:UBi,N(ng))
@@ -2957,13 +3079,16 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       real(r8), parameter :: r_phy_POC=0.3_r8      ! ratio of phyto. carbon to total POC
       real(r8), parameter :: mmol2mol=0.001_r8     ! mmole to mol conversion
       real(r8), parameter :: adet_ss=0.011_r8      ! spectral slope for adet
-      real(r8), parameter :: acdom_ss=0.020_r8     ! spectral slope for aCDOM
-      real(r8), parameter :: a_cdom_sal=4.372_r8   ! constant term for aCDOM(412) from salt
-      real(r8), parameter :: b_cdom_sal=-0.129_r8   ! linear term for aCDOM(412) from salt
+      real(r8), parameter :: acdom_ss=0.020_r8     ! spectral slope for aCDOM (from Keith et al, 2002)
+      real(r8), parameter :: a_cdom_sal=4.372_r8   ! constant term for aCDOM(412) from salt (from Keith et al, 2002)
+      real(r8), parameter :: b_cdom_sal=-0.129_r8   ! linear term for aCDOM(412) from salt (from Keith et al, 2002)
       real(r8), parameter :: chl_exp=0.65_r8       ! exponent for chl absorption
       real(r8), parameter :: bbrat_sw=0.5_r8       ! backscattering ratio for seawater
       real(r8), parameter :: a_bbw_salt=1.0_r8     ! constant term for bbw from salt
       real(r8), parameter :: b_bbw_salt=0.00811_r8 ! linear term for bbw from salt
+# ifdef RIVER_SEDIMENT
+	real(r8), parameter :: alpha_sed=0.075	   ! attenuation coefficient for non-biogenic sediment (m-1/(g/m3)
+# endif
 
 ! values at 490 nm:
       real(r8), parameter :: aw_abs=0.0150_r8
@@ -3055,6 +3180,10 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
            kpar2=(ksai0+ksai1*aa_avg+ksai2*bb_avg)*(alpha1+alpha2*(cos(thetaa)))
 
            kd(i,k)= kpar1+kpar2/sqrt(1.0_r8+abs(z_r(i,j,k)))
+#  ifdef RIVER_SEDIMENT
+           ! add effect of non-biogenic sediment
+           kd(i,k)=kd(i,k)+alpha_sed*Rsed(i,k)
+#  endif
          enddo
 
 #  ifdef MASKING

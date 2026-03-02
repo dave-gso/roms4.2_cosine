@@ -87,6 +87,7 @@
 !   wsdsi    Sinking velocity of detritus silicate [m/day].            !
 !   wsp      Sinking velocity of large phytoplankton [m/day].          !
 !   wsps3    Sinking velocity of HAB phytoplankton [m/day].            !
+!   wsrsed   Sinking velocity of non-biogenic river sediment [m/day].  !
 !   pco2a    Air pCO2 [ppmv].                                          !
 !   si2n     Silicate to nitrogen ratio [mol_Si/mol_N].                !
 !   p2n      Phosphorus to nitrogen ratio [mol_P/mol_N].               !
@@ -149,6 +150,9 @@
 #ifdef HAB
       integer :: iHphy                 ! HAB phytoplankton
       integer :: iChl3                 ! Chlorophyll concentration for HAB phytoplankton
+#endif
+#ifdef RIVER_SEDIMENT
+      integer :: iRsed                 ! River sediment (non-biogenic)
 #endif
 !
 #if defined DIAGNOSTICS && defined DIAGNOSTICS_BIO
@@ -242,6 +246,9 @@
       real(r8), allocatable :: wsd(:)             ! m/day
       real(r8), allocatable :: wsdsi(:)           ! m/day
       real(r8), allocatable :: wsp(:)             ! m/day
+#ifdef RIVER_SEDIMENT
+      real(r8), allocatable :: wsrsed(:)          ! m/day
+#endif
       real(r8), allocatable :: si2n(:)            ! mol_Si/mol_N
       real(r8), allocatable :: pco2a(:)           ! ppmv
       real(r8), allocatable :: p2n(:)             ! mol_P/mol_N
@@ -251,7 +258,7 @@
       real(r8), allocatable :: ro5(:)             ! nondimensional
       real(r8), allocatable :: ro6(:)             ! nondimensional
       real(r8), allocatable :: ro7(:)             ! nondimensional
-      real(r8), allocatable :: pCO2air(:)         ! ppmv
+!      real(r8), allocatable :: pCO2air(:)         ! ppmv
       real(r8), allocatable :: Chl2cs1_m(:)         ! mg_Chl/mg_C
       real(r8), allocatable :: Chl2cs2_m(:)         ! mg_Chl/mg_C
 #ifdef HAB
@@ -301,6 +308,7 @@
       real(r8), allocatable :: balpha(:)
       real(r8), allocatable :: bw(:)
       real(r8), allocatable :: btheta_diag(:)
+      real(r8), allocatable :: btheta_Si(:)
       real(r8), allocatable :: bnit(:)
       real(r8), allocatable :: btheta_nit(:)
       real(r8), allocatable :: bdo_nit(:)
@@ -353,6 +361,9 @@
 #endif
 #ifdef HAB
       NBT=NBT+2
+#endif
+#ifdef RIVER_SEDIMENT
+      NBT=NBT+1
 #endif
 #if defined DIAGNOSTICS && defined DIAGNOSTICS_BIO
       NDbio3d=3
@@ -552,6 +563,11 @@
       IF (.not.allocated(wsp)) THEN
         allocate ( wsp(Ngrids) )
       END IF
+#ifdef RIVER_SEDIMENT
+      IF (.not.allocated(wsrsed)) THEN
+        allocate ( wsrsed(Ngrids) )
+      END IF
+#endif
       IF (.not.allocated(si2n)) THEN
         allocate ( si2n(Ngrids) )
       END IF
@@ -579,9 +595,9 @@
       IF (.not.allocated(ro7)) THEN
         allocate ( ro7(Ngrids) )
       END IF
-      IF (.not.allocated(pCO2air)) THEN
-        allocate ( pCO2air(Ngrids) )
-      END if
+!      IF (.not.allocated(pCO2air)) THEN
+!        allocate ( pCO2air(Ngrids) )
+!      END if
       if (.not.allocated(Chl2cs1_m)) THEN
         allocate ( Chl2cs1_m(Ngrids) )
       END if
@@ -660,6 +676,9 @@
       END IF
       if (.not.allocated(btheta_diag)) THEN
         allocate ( btheta_diag(Ngrids) )
+      END IF
+      if (.not.allocated(btheta_Si)) THEN
+        allocate ( btheta_Si(Ngrids) )
       END IF
       if (.not.allocated(bnit)) THEN
         allocate ( bnit(Ngrids) )
@@ -800,6 +819,10 @@
       iHphy=ic+1
       iChl3=ic+2
       ic=ic+2
+# endif
+# ifdef RIVER_SEDIMENT
+      iRsed=ic+1
+      ic=ic+1
 # endif
 
       RETURN

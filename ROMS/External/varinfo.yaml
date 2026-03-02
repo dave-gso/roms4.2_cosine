@@ -2807,6 +2807,16 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
     
+  - variable:       river_Rsed                                       # Input
+    standard_name:  concentration_of_sediment_transport_into_sea_water_from_rivers
+    long_name:      river runoff non-biogenic sediment concentration
+    units:          grams_sediment meter-3      
+    field:          river Rsed
+    time:           river_time
+    index_code:     idRtrc(iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
   #################################################
   ###  Surface/Bottom Boundary Layer Variables  ###
   #################################################
@@ -4577,6 +4587,18 @@ metadata:
     type:           r3dvar
     add_offset:     0.0d0
     scale:          1.0d0
+    
+  - variable:       Rsed                                      # Input/Output
+    standard_name:  concentration_of_non_biogenic_sediment_in_sea_water
+    long_name:      non biogenic sediment concentration
+    units:          grams_sediment meter-3                   # [grams/m3]
+    field:          Rsed
+    time:           ocean_time
+    index_code:     idTvar(iRsed)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
+    
   # Time-averaged Diagnostic Variables
 
   - variable:       CO2_airsea                                       # Input/Output
@@ -6432,7 +6454,50 @@ metadata:
     type:           nulvar
     add_offset:     0.0d0
     scale:          1.0d0
+  
+  - variable:       Rsed_east                                        # Input
+    standard_name:  concentration_of_river_sediment_in_sea_water
+    long_name:      River sediment eastern boundary condition
+    units:          grams sediment meter-3                 
+    field:          Rsed eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
     
+  - variable:       Rsed_west                                        # Input
+    standard_name:  concentration_of_river_sediment_in_sea_water
+    long_name:      River sediment western boundary condition
+    units:          grams sediment meter-3                 
+    field:          Rsed western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0 
+    
+  - variable:       Rsed_south                                        # Input
+    standard_name:  concentration_of_river_sediment_in_sea_water
+    long_name:      River sediment southern boundary condition
+    units:          grams sediment meter-3                 
+    field:          Rsed southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+    
+  - variable:       Rsed_north                                        # Input
+    standard_name:  concentration_of_river_sediment_in_sea_water
+    long_name:      River sediment northern boundary condition
+    units:          grams sediment meter-3                 
+    field:          Rsed northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
   ########################
   ###  Red Tide Model  ###
   ########################

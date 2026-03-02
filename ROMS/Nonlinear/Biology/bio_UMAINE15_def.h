@@ -368,7 +368,15 @@
      &               1, (/0/), Aval, Vinfo, ncname,                     &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
-
+      
+      Vinfo( 1)='wsrsed'
+      Vinfo( 2)='sinking velocity of non-biogenic river sediment'
+      Vinfo( 3)='meter day-1'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
       Vinfo( 1)='pco2a'
       Vinfo( 2)='air CO2 partial pressure'
       Vinfo( 3)='parts per million by volume'
@@ -627,7 +635,15 @@
      &               1, (/0/), Aval, Vinfo, ncname,                     &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
-
+      
+      Vinfo( 1)='btheta_Si'
+      Vinfo( 2)='Base for temperature dependence of PSi dissolution'
+      Vinfo( 3)='nondimensional'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
       Vinfo( 1)='bnit'
       Vinfo( 2)='Nitrification rate at reference temp. and unlimited O2'
       Vinfo( 3)='day-1'
