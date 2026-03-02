@@ -92,6 +92,8 @@
             Npts=load_r(Nval, Rval, Ngrids, bw)
           CASE('btheta_diag')
             Npts=load_r(Nval, Rval, Ngrids, btheta_diag)
+	    CASE('btheta_Si')
+            Npts=load_r(Nval, Rval, Ngrids, btheta_Si)
           CASE('bnit')
             Npts=load_r(Nval, Rval, Ngrids, bnit)
           CASE('btheta_nit')
@@ -231,6 +233,9 @@
      &            'Sedimentation rate [cm/year].'
             WRITE (out,110) btheta_diag(ng), 'btheta_diag',            &
      &           'Base for temperature dependence of diagenesis',      &
+     &            '[nondimensional].'
+            WRITE (out,110) btheta_Si(ng), 'btheta_Si',                &
+     &           'Base for temperature dependence of PSi dissolution', &
      &            '[nondimensional].'
             WRITE (out,110) bnit(ng), 'bnit',                          &
      &            'Nitrification rate at reference temperature and',   &

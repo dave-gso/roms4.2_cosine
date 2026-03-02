@@ -218,6 +218,14 @@
      &                      wsp(ng), (/0/), (/0/),                      &
      &                      pioFile = pioFile)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+#ifdef RIVER_SEDIMENT
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'wsrsed',                &
+     &                      wsrsed(ng), (/0/), (/0/),                   &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+#endif
 
       CALL pio_netcdf_put_fvar (ng, model, ncname, 'pco2a',                 &
      &                      pco2a(ng), (/0/), (/0/),                    &
@@ -414,6 +422,12 @@
      &                      btheta_diag(ng), (/0/), (/0/),              &
      &                      pioFile = pioFile)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'btheta_Si',             &
+     &                      btheta_Si(ng), (/0/), (/0/),                &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+
 
       CALL pio_netcdf_put_fvar (ng, model, ncname, 'bnit',                  &
      &                      bnit(ng), (/0/), (/0/),                     &

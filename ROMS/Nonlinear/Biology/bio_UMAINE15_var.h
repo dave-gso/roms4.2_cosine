@@ -77,6 +77,10 @@
               CASE ('idTvar(iChl3)')
                 idTvar(iChl3)=varid
 #endif
+#ifdef RIVER_SEDIMENT
+              CASE('idTvar(iRsed)')
+                idTvar(iRsed)=varid
+#endif
 
 #if defined AD_SENSITIVITY   || defined IS4DVAR_SENSITIVITY || \
     defined OPT_OBSERVATIONS || defined SENSITIVITY_4DVAR   || \
@@ -299,6 +303,16 @@
               CASE ('idTbry(inorth,iHphy)')
                 idTbry(inorth,iHphy)=varid
 #endif
+#ifdef RIVER_SEDIMENT
+		  CASE ('idTbry(iwest,iRsed)')
+                idTbry(iwest,iRsed)=varid
+		  CASE ('idTbry(ieast,iRsed)')
+                idTbry(ieast,iRsed)=varid
+              CASE ('idTbry(isouth,iRsed)')
+                idTbry(isouth,iRsed)=varid
+              CASE ('idTbry(inorth,iRsed)')
+                idTbry(inorth,iRsed)=varid
+#endif
 !
 !  Biological tracers point Source/Sinks (river runoff).
 !
@@ -343,7 +357,10 @@
               CASE ('idRtrc(iChl3)')
                 idRtrc(iChl3)=varid
 # endif
-                
+#ifdef RIVER_SEDIMENT
+              CASE ('idRtrc(iRsed)')
+                idRtrc(iRsed)=varid
+#endif                
 #ifdef DIAGNOSTICS_BIO
 # ifdef SEDBIO
               CASE ('iDbio2(ibNO3fx)')
