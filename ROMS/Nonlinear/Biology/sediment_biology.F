@@ -244,6 +244,7 @@
             DO k=1,nspc
                 CSOD=CSOD+JPOC(k)
             END DO
+            ! CSOD converted to mmol/m^2
             CSOD=CSOD*(O2/(O2+bdo_c(ng)))*bdep(ng)
             ! JCO2: flux of carbon from POC remineralization into sediment pore water
             JCO2 = CSOD
@@ -266,29 +267,13 @@
 		    Jdenit=0.8_r8*CSOD/bdep(ng)
 		    bNO3(i)=bNO3(i)-Jdenit
 		END IF
-!            IF (bNO3(i).gt.0.0_r8) THEN
-!                Jdenit=min(dtdays*bdenit(ng)*                    &
-!     &                      (btheta_denit(ng)**(temp(i)-TR))*    &
-!     &                       exp(-O2/bpsi_n(ng))*bNO3(i),        &
-!     &                       0.8_r8*CSOD/bdep(ng))
-!                bNO3(i)=bNO3(i)-Jdenit
-!            END IF
 
-!        SOD (mmol/m2)
-!            CSOD=0.0_r8
-!            DO k=1,nspc
-!                CSOD=CSOD+JPOC(k)
-!            END DO
-!            CSOD=CSOD*(O2/(O2+bdo_c(ng)))*bdep(ng)
-            ! JCO2: flux of carbon from POC remineralization into sediment pore water
-!            JCO2 = CSOD
-            ! write out CSOD and JCO2
-!            write(*,*) 'CSOD = ', CSOD, 'JCO2 = ', JCO2
+!           NSOD converted to units of mmol/m^2
             NSOD=bao2(ng)*Jnit*bdep(ng)
-            if( CSOD.lt.0.0_r8.or.NSOD.lt.0.0_r8) then
-                write(*,*)'i=',i,'CSOD=',CSOD,'NSOD=',NSOD
-                write(*,*)'DOX(i)=',DOX(i),'JPOC(1:3)=',JPOC(1:3)
-            end if
+!            if( CSOD.lt.0.0_r8.or.NSOD.lt.0.0_r8) then
+!                write(*,*)'i=',i,'CSOD=',CSOD,'NSOD=',NSOD
+!                write(*,*)'DOX(i)=',DOX(i),'JPOC(1:3)=',JPOC(1:3)
+!            end if
             SOD(i)=CSOD+NSOD
 
             ! Alkalinity flux into pore water
@@ -297,7 +282,8 @@
             ! Supposedly this is based on Redfield, need to ask Hongjie for
             ! an actual source
             ! TA is consumed as oxygen is consumed so check the sign
-            D = o2no(ng)
+!           D = o2no(ng)
+            D = o2nh(ng)
             B = p2n(ng)
             JAlk_sed = CSOD * (-(B+1)/D) - NSOD
 !            JAlk_sed = CSOD * (-17.0_r8/138.0_r8) - NSOD
