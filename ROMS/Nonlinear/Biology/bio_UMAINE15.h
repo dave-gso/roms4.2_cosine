@@ -897,7 +897,7 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 
       grows2=min(uno3s2+unh4s2,usio4s2,upo4s2)*alts2
 ! uptake parameters for NO3 and NH4 
-      cff4=dtdays*gmaxs2(ng)*q10pp*grows2*pnh4s1*Bio(i,k,iLphy)/         &
+      cff4=dtdays*gmaxs2(ng)*q10pp*grows2*pnh4s2*Bio(i,k,iLphy)/         &
      &     (max(uno3s2 + unh4s2,Minval)*(akno3s2(ng)+Bio(i,k,iNO3_)))
       cff5=dtdays*gmaxs2(ng)*q10pp*grows2*Bio(i,k,iLphy)/                &
      &     (max(uno3s2 + unh4s2,Minval)*(aknh4s2(ng)+Bio(i,k,iNH4_)))
