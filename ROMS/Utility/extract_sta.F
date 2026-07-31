@@ -884,6 +884,7 @@
 !  here, the 3rd dimension is nspc
 !-----------------------------------------------------------------------
 !
+#ifdef SEDBIO
       IF (gtype.eq.bs3dvar) THEN
         Xmin=rXmin(ng)
         Xmax=rXmax(ng)
@@ -975,6 +976,7 @@
           END IF
         END DO
       END IF
+#endif
 # ifdef DISTRIBUTE
 !
 !-----------------------------------------------------------------------

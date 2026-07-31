@@ -2349,6 +2349,61 @@
             END IF
           END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Read in aragonite saturation state.
+!
+          IF (get_var(idomeg).and.have_var(idomeg)) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idomeg)), varid)
+            IF (foundit) THEN
+              gtype=var_flag(varid)*r3dvar
+              status=nf_fread3d(ng, IDmod, ncname, ncINPid,             &
+     &                          Vname(1,idomeg), varid,                &
+     &                          InpRec, gtype, Vsize,                   &
+     &                          LBi, UBi, LBj, UBj, 1, N(ng),           &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          OCEAN(ng) % omega_arag,                      &
+     &                          checksum = Fhash)
+#   else
+     &                          OCEAN(ng) % omega_arag)
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idomeg)),     &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#  ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idomeg)),             &
+     &                              Fmin, Fmax, Fhash
+#  else
+                  WRITE (stdout,70) TRIM(Vname(2,idomeg)),             &
+     &                              Fmin, Fmax
+#  endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idomeg)),       &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined SEDBIO
 !
 !  Read in sediment particulate concentrations.
@@ -10324,7 +10379,7 @@
 !
           IF (get_var(idkdPAR).and.have_var(idkdPAR)) THEN
             foundit=find_string(var_name, n_var,                        &
-     &                          TRIM(Vname(1,idkdPAR)), varid)
+     &                          TRIM(Vname(1,idkdPAR)), vindex)
             IF (foundit) THEN
               my_pioVar%vd=var_desc(vindex)
               my_pioVar%gtype=r3dvar
@@ -10384,6 +10439,69 @@
             ELSE
               IF (Master) THEN
                 WRITE (stdout,80) string, TRIM(Vname(1,idkdPAR)),       &
+     &                            TRIM(ncname)
+              END IF
+              exit_flag=4
+              IF (FoundError(exit_flag, nf90_noerr,                     &
+     &                       __LINE__, MyFile)) THEN
+                RETURN
+              END IF
+            END IF
+          END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Read in aragonite saturation state.
+!
+          IF (get_var(idomeg).and.have_var(idomeg)) THEN
+            foundit=find_string(var_name, n_var,                        &
+     &                          TRIM(Vname(1,idomeg)), vindex)
+            IF (foundit) THEN
+              my_pioVar%vd=var_desc(vindex)
+              my_pioVar%gtype=r3dvar
+              IF (KIND(OCEAN(ng)%omega_arag).eq.8) THEN
+                my_pioVar%dkind=PIO_double
+                ioDesc => ioDesc_dp_r3dvar(ng)
+              ELSE
+                my_pioVar%dkind=PIO_real
+                ioDesc => ioDesc_sp_r3dvar(ng)
+              END IF
+              status=nf_fread3d(ng, IDmod, ncname, pioFile,             &
+     &                          Vname(1,idkdPAR), my_pioVar,            &
+     &                          InpRec, ioDesc, Vsize,                  &
+     &                          LBi, UBi, LBj, UBj, 1, N(ng),           &
+     &                          Fscl, Fmin, Fmax,                       &
+#   ifdef MASKING
+     &                          GRID(ng) % rmask,                       &
+#   endif
+#   ifdef CHECKSUM
+     &                          OCEAN(ng) % omega_arag,                      &
+     &                          checksum = Fhash)
+#   else
+     &                          OCEAN(ng) % omega_arag)
+#   endif
+              IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+                IF (Master) THEN
+                  WRITE (stdout,60) string, TRIM(Vname(1,idomeg)),     &
+     &                              InpRec, TRIM(ncname)
+                END IF
+                exit_flag=2
+                ioerror=status
+                RETURN
+              ELSE
+                IF (Master) THEN
+#  ifdef CHECKSUM
+                  WRITE (stdout,70) TRIM(Vname(2,idomeg)),             &
+     &                              Fmin, Fmax, Fhash
+#  else
+                  WRITE (stdout,70) TRIM(Vname(2,idomeg)),             &
+     &                              Fmin, Fmax
+#  endif
+                END IF
+              END IF
+            ELSE
+              IF (Master) THEN
+                WRITE (stdout,80) string, TRIM(Vname(1,idomeg)),       &
      &                            TRIM(ncname)
               END IF
               exit_flag=4

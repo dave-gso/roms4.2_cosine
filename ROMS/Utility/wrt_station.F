@@ -513,6 +513,25 @@
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
       END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+      IF (Sout(idomeg,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta3d (ng, model, Cgrid, idomeg, r3dvar,          &
+     &                      LBi, UBi, LBj, UBj, 1, N(ng),               &
+     &                      scale, OCEAN(ng)%omega_arag,                     &
+     &                      NposR, XposR, YposR, ZposR, rsta)
+        CALL netcdf_put_fvar (ng, model, STA(ng)%name,                  &
+     &                        TRIM(Vname(1,idomeg)), rsta,             &
+     &                        (/1,1,STA(ng)%Rindex/),                   &
+     &                        (/N(ng),Nstation(ng),1/),                 &
+     &                        ncid = STA(ng)%ncid,                      &
+     &                        varid = STA(ng)%Vid(idomeg))
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
 !
 !  Write out CO2 surface flux
@@ -1523,6 +1542,25 @@
      &                        (/N(ng),Nstation(ng),1/),                 &
      &                        pioFile = STA(ng)%pioFile,                &
      &                        pioVar = STA(ng)%pioVar(idkdPAR)%vd)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+      IF (Sout(idomeg,ng)) THEN
+        scale=1.0_dp
+        CALL extract_sta3d (ng, model, Cgrid, idomeg, r3dvar,          &
+     &                      LBi, UBi, LBj, UBj, 1, N(ng),               &
+     &                      scale, OCEAN(ng)%omega_arag,                &
+     &                      NposR, XposR, YposR, ZposR, rsta)
+        CALL pio_netcdf_put_fvar (ng, model, STA(ng)%name,              &
+     &                        TRIM(Vname(1,idomeg)), rsta,             &
+     &                        (/1,1,STA(ng)%Rindex/),                   &
+     &                        (/N(ng),Nstation(ng),1/),                 &
+     &                        pioFile = STA(ng)%pioFile,                &
+     &                        pioVar = STA(ng)%pioVar(idomeg)%vd)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
       END IF
 #  endif

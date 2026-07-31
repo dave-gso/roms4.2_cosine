@@ -54,7 +54,29 @@
      &               1, (/0/), Aval, Vinfo, ncname,                     &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
-
+#ifdef CACO3
+      Vinfo( 1)='cacopf'
+      Vinfo( 2)='CaCO3 production rate as fraction of net PP'
+      Vinfo( 3)='unitless'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      Vinfo( 1)='cacodr'
+      Vinfo( 2)='CaCO3 dissolution rate'
+      Vinfo( 3)='day-1'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      Vinfo( 1)='omega_thresh'
+      Vinfo( 2)='threshold saturation state for CaCO3 dissolution'
+      Vinfo( 3)='unitless'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif
 #ifdef PHYTO_RESP
 	Vinfo( 1)='rrb1'
 	Vinfo( 2)='basal respiration rate of small phyto.'
@@ -368,7 +390,8 @@
      &               1, (/0/), Aval, Vinfo, ncname,                     &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
-      
+#ifdef RIVER_SEDIMENT  
+    
       Vinfo( 1)='wsrsed'
       Vinfo( 2)='sinking velocity of non-biogenic river sediment'
       Vinfo( 3)='meter day-1'
@@ -376,7 +399,18 @@
      &               1, (/0/), Aval, Vinfo, ncname,                     &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
-      
+#endif
+#ifdef CACO3
+
+      Vinfo( 1)='wsPCa'
+      Vinfo( 2)='sinking velocity of biogenic CaCO3'
+      Vinfo( 3)='meter day-1'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/0/), Aval, Vinfo, ncname,                     &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#endif 
+           
       Vinfo( 1)='pco2a'
       Vinfo( 2)='air CO2 partial pressure'
       Vinfo( 3)='parts per million by volume'
@@ -592,7 +626,7 @@
       Vinfo( 2)='Maximum POM decay rate'
       Vinfo( 3)='day-1'
       status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
-     &               1, (/sedbiodim/), Aval, Vinfo, ncname,                     &
+     &               1, (/sedbiodim/), Aval, Vinfo, ncname,             &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 
@@ -600,10 +634,20 @@
       Vinfo( 2)='Maximum particulate silicate decay rate'
       Vinfo( 3)='day-1'
       status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
-     &               1, (/sedbiodim/), Aval, Vinfo, ncname,                     &
+     &               1, (/sedbiodim/), Aval, Vinfo, ncname,             &
      &               SetParAccess = .FALSE.)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# ifdef CACO3
 
+      Vinfo( 1)='bUmaxCa'
+      Vinfo( 2)='Maximum particulate CaCO3 decay rate'
+      Vinfo( 3)='day-1'
+      status=def_var(ng, model, ncid, varid, NF_TYPE,                   &
+     &               1, (/sedbiodim/), Aval, Vinfo, ncname,             &
+     &               SetParAccess = .FALSE.)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+# endif
       Vinfo( 1)='bdep'
       Vinfo( 2)='Thickness of benthic sediment layer'
       Vinfo( 3)='meter'

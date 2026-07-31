@@ -8,6 +8,12 @@
 !              [1/day]                                                 !
 !   gmaxs2   Maximum specific growth rate of diatom [1/day]            !
 !   gmaxs3   Maximum specific growth rate of HAB phyto [1/day] 	     !
+#ifdef CACO3
+!   cacopf    CaCO3 production rate as fraction of net PP [no unit].   !
+!   cacodr    CaCO3 dissolution rate [1/day]                           !
+!   omega_thresh    threshold saturation state for CaCO3 dissolution   !
+!                   [dimensionless]                                    !
+#endif
 !! only if PHYTO_RESP defined:
 !   rrb1	 Basal respiration rate of small phytoplankton	[1/day]    !
 !   rrb2	 Basal respiration rate of diatom	[1/day]    		     !
@@ -88,6 +94,9 @@
 !   wsp      Sinking velocity of large phytoplankton [m/day].          !
 !   wsps3    Sinking velocity of HAB phytoplankton [m/day].            !
 !   wsrsed   Sinking velocity of non-biogenic river sediment [m/day].  !
+#ifdef CACO3
+!   wsPCa    Sinking velocity of biogenic CaCO3 [m/day].               !
+#endif
 !   pco2a    Air pCO2 [ppmv].                                          !
 !   si2n     Silicate to nitrogen ratio [mol_Si/mol_N].                !
 !   p2n      Phosphorus to nitrogen ratio [mol_P/mol_N].               !
@@ -154,6 +163,9 @@
 #ifdef RIVER_SEDIMENT
       integer :: iRsed                 ! River sediment (non-biogenic)
 #endif
+#ifdef CACO3
+	integer :: iCaCO			   ! Biogenic Calcium Carbonate concentration
+#endif
 !
 #if defined DIAGNOSTICS && defined DIAGNOSTICS_BIO
 !
@@ -171,12 +183,16 @@
       integer  :: ibSiO2fx                    ! benthic SiO2 flux
       integer  :: ibPONfx                     ! flux of PON to sediment
       integer  :: ibPSifx                     ! flux of PSi to sediment
+      integer  :: ibDenit                     ! denitrification rate in sediment
 #  ifdef CARBON
       integer  :: ibTICfx                     ! benthic TIC flux
       integer  :: ibAlkfx                     ! benthic Alk flux
 #  endif
 #  ifdef OXYGEN
       integer  :: ibO2fx                     ! benthic O2 flux
+#  endif
+#  ifdef CACO3
+      integer  :: ibPCafx			   ! flux of biogenic CaCO3 to sediment
 #  endif
 # endif
 !
@@ -205,6 +221,11 @@
       real(r8), allocatable :: reg2(:)            ! 1/day
       real(r8), allocatable :: gmaxs1(:)          ! 1/day
       real(r8), allocatable :: gmaxs2(:)          ! 1/day
+#ifdef CACO3
+      real(r8), allocatable :: cacopf(:)          ! nondimensional
+      real(r8), allocatable :: cacodr(:)          ! 1/day
+      real(r8), allocatable :: omega_thresh(:)    ! nondimensional
+#endif
 #ifdef PHYTO_RESP
 	real(r8), allocatable :: rrb1(:)		  ! 1/day
 	real(r8), allocatable :: rrb2(:)		  ! 1/day
@@ -248,6 +269,9 @@
       real(r8), allocatable :: wsp(:)             ! m/day
 #ifdef RIVER_SEDIMENT
       real(r8), allocatable :: wsrsed(:)          ! m/day
+#endif
+#ifdef CACO3
+      real(r8), allocatable :: wsPCa(:)           ! sinking rate of particulate CaCO3 (m/day)
 #endif
       real(r8), allocatable :: si2n(:)            ! mol_Si/mol_N
       real(r8), allocatable :: pco2a(:)           ! ppmv
@@ -304,6 +328,10 @@
 ! benthic biology parameters
       real(r8), allocatable :: bUmax(:,:)
       real(r8), allocatable :: bUmaxSi(:,:)
+# ifdef CACO3
+      real(r8), allocatable :: bUmaxCa(:,:)
+      real(r8), allocatable :: bfca(:,:)
+# endif
       real(r8), allocatable :: bdep(:)
       real(r8), allocatable :: balpha(:)
       real(r8), allocatable :: bw(:)
@@ -365,6 +393,9 @@
 #ifdef RIVER_SEDIMENT
       NBT=NBT+1
 #endif
+#ifdef CACO3
+      NBT=NBT+1
+#endif
 #if defined DIAGNOSTICS && defined DIAGNOSTICS_BIO
       NDbio3d=3
 # ifdef OXYGEN
@@ -377,11 +408,15 @@
       NDbio2d=0
 ! benthic flux diagnostics:
 # ifdef SEDBIO
-      NDbio2d=NDbio2d+6
+!      NDbio2d=NDbio2d+6
+      NDbio2d=NDbio2d+7
 #  ifdef CARBON
       NDbio2d=NDbio2d+2
 #  endif
 #  ifdef OXYGEN
+      NDbio2d=NDbio2d+1
+#  endif
+#  ifdef CACO3
       NDbio2d=NDbio2d+1
 #  endif
 # endif
@@ -401,7 +436,12 @@
       ibSiO2fx=ic+4
       ibPONfx=ic+5
       ibPSifx=ic+6
-      ic=ic+6
+      ibDenit=ic+7
+      ic=ic+7
+#  ifdef CACO3
+      ibPCafx=ic+1
+      ic=ic+1
+#  endif
 # endif
 # ifdef CARBON
       iCOfx=ic+1
@@ -426,6 +466,7 @@
 ! total number of sediment biology variables
       NBBT=NPOM+NPWC+NDR+NSF
 #endif
+
 !-----------------------------------------------------------------------
 !  Allocate various module variables.
 !-----------------------------------------------------------------------
@@ -444,6 +485,17 @@
       IF (.not.allocated(gmaxs2)) THEN
         allocate ( gmaxs2(Ngrids) )
       END IF
+#ifdef CACO3
+      IF (.not.allocated(cacopf)) THEN
+        allocate ( cacopf(Ngrids) )
+      END IF
+      IF (.not.allocated(cacodr)) THEN
+        allocate ( cacodr(Ngrids) )
+      END IF
+      IF (.not.allocated(omega_thresh)) THEN
+        allocate ( omega_thresh(Ngrids) )
+      END IF
+#endif
 #ifdef PHYTO_RESP
 	IF (.not.allocated(rrb1)) THEN
 	  allocate ( rrb1(Ngrids) )
@@ -568,6 +620,11 @@
         allocate ( wsrsed(Ngrids) )
       END IF
 #endif
+#ifdef CACO3
+      IF (.not.allocated(wsPCa)) THEN
+        allocate ( wsPCa(Ngrids) )
+      END IF
+#endif
       IF (.not.allocated(si2n)) THEN
         allocate ( si2n(Ngrids) )
       END IF
@@ -665,6 +722,11 @@
       if (.not.allocated(bUmaxSi)) THEN
         allocate ( bUmaxSi(Ngrids,nspc) )
       END IF
+# ifdef CACO3
+      if (.not.allocated(bUmaxCa)) THEN
+        allocate ( bUmaxCa(Ngrids,nspc) )
+      END IF
+# endif
       if (.not.allocated(bdep)) THEN
         allocate ( bdep(Ngrids) )
       END IF
@@ -722,6 +784,11 @@
       if (.not.allocated(bfs)) THEN
         allocate ( bfs(Ngrids,nspc) )
       END IF
+# ifdef CACO3
+      if (.not.allocated(bfca)) THEN
+        allocate ( bfca(Ngrids,nspc) )
+      END IF
+# endif
 #endif
 	IF (.not.allocated(q10_phyto_prod)) THEN
 	  allocate ( q10_phyto_prod(Ngrids) )
@@ -822,6 +889,10 @@
 # endif
 # ifdef RIVER_SEDIMENT
       iRsed=ic+1
+      ic=ic+1
+# endif
+# ifdef CACO3
+      iCaCO=ic+1
       ic=ic+1
 # endif
 

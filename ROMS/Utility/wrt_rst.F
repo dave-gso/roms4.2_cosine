@@ -724,6 +724,29 @@
           RETURN
         END IF
 # endif
+# if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+        scale=1.0_dp
+        gtype=gfactor*r3dvar
+        status=nf_fwrite3d(ng, model, RST(ng)%ncid, idomeg,            &
+     &                     RST(ng)%Vid(idomeg),                        &
+     &                     RST(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     OCEAN(ng) % omega_arag)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idomeg)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+# endif
 # ifdef LMD_SKPP
 !
 !  Write out depth of surface boundary layer.
@@ -1996,6 +2019,34 @@
         IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
           IF (Master) THEN
             WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), RST(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+#  endif 
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+        scale=1.0_dp
+        IF (RST(ng)%pioVar(idomeg)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r3dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r3dvar(ng)
+        END IF
+        status=nf_fwrite3d(ng, model, RST(ng)%pioFile, idomeg,         &
+     &                     RST(ng)%pioVar(idomeg),                     &
+     &                     RST(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % omega_arag)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idomeg)), RST(ng)%Rindex
           END IF
           exit_flag=3
           ioerror=status

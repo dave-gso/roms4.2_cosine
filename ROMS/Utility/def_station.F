@@ -556,6 +556,23 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state
+!
+        IF (Sout(idomeg,ng)) THEN
+          Vinfo( 1)=Vname(1,idomeg)
+          Vinfo( 2)=Vname(2,idomeg)
+          Vinfo( 3)=Vname(3,idomeg)
+          Vinfo(14)=Vname(4,idomeg)
+          Vinfo(16)=Vname(1,idtime)
+          status=def_var(ng, model, STA(ng)%ncid, STA(ng)%Vid(idomeg), &
+     &                   NF_FOUT, 3, rgrd, Aval, Vinfo, ncname,         &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
 !
 !  Define CO2 surface flux
@@ -1202,6 +1219,11 @@
             got_var(idkdPAR)=.TRUE.
             STA(ng)%Vid(idkdPAR)=var_id(i)
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            got_var(idomeg)=.TRUE.
+            STA(ng)%Vid(idomeg)=var_id(i)
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
             got_var(idfgCO2)=.TRUE.
@@ -1410,6 +1432,14 @@
 #  if defined BIO_UMAINE15 && defined OPTICS_OP1
         IF (.not.got_var(idkdPAR).and.Sout(idkdPAR,ng)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+        IF (.not.got_var(idomeg).and.Sout(idomeg,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idomeg)),         &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN
@@ -2194,6 +2224,27 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state.
+!
+        IF (Sout(idomeg,ng)) THEN
+          Vinfo( 1)=Vname(1,idomeg)
+          Vinfo( 2)=Vname(2,idomeg)
+          Vinfo( 3)=Vname(3,idomeg)
+          Vinfo(14)=Vname(4,idomeg)
+          Vinfo(16)=Vname(1,idtime)
+          STA(ng)%pioVar(idomeg)%dkind=PIO_FOUT
+          STA(ng)%pioVar(idomeg)%gtype=0
+!
+          status=def_var(ng, model, STA(ng)%pioFile,                    &
+     &                   STA(ng)%pioVar(idomeg)%vd,                    &
+     &                   PIO_FOUT, 3, rgrd, Aval, Vinfo, ncname,        &
+     &                   SetFillVal = .TRUE.,                           &
+     &                   SetParAccess = .TRUE.)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
 !
 !  Define CO2 surface flux
@@ -2950,6 +3001,13 @@
             STA(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
             STA(ng)%pioVar(idkdPAR)%gtype=0
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            got_var(idomeg)=.TRUE.
+            STA(ng)%pioVar(idomeg)%vd=var_desc(i)
+            STA(ng)%pioVar(idomeg)%dkind=PIO_FOUT
+            STA(ng)%pioVar(idomeg)%gtype=0
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
             got_var(idfgCO2)=.TRUE.
@@ -3211,6 +3269,14 @@
 #  if defined BIO_UMAINE15 && defined OPTICS_OP1
         IF (.not.got_var(idkdPAR).and.Sout(idkdPAR,ng)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+        IF (.not.got_var(idomeg).and.Sout(idomeg,ng)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idomeg)),         &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN

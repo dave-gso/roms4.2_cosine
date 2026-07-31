@@ -1583,15 +1583,15 @@
       IF (Hout(idkdPAR,ng)) THEN
         scale=1.0_dp
         gtype=gfactor*r3dvar
-        do j=LBj,UBj
-          do i=LBi,UBi
-            do k=1,N(ng)
-              if(isnan(OCEAN(ng)%kdPAR(i,j,k))) then
-                write(*,*)'kdPAR = nan, i,j,k =',i,j,k
-		  end if
-		end do
-	    end do
-	  end do
+!        do j=LBj,UBj
+!          do i=LBi,UBi
+!            do k=1,N(ng)
+!              if(isnan(OCEAN(ng)%kdPAR(i,j,k))) then
+!                write(*,*)'kdPAR = nan, i,j,k =',i,j,k
+!		  end if
+!		end do
+!	    end do
+!	  end do
         status=nf_fwrite3d(ng, model, HIS(ng)%ncid, idkdPAR,            &
      &                     HIS(ng)%Vid(idkdPAR),                        &
      &                     HIS(ng)%Rindex, gtype,                       &
@@ -1603,6 +1603,31 @@
         IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
           IF (Master) THEN
             WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+# endif
+# if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+      IF (Hout(idomeg,ng)) THEN
+        scale=1.0_dp
+        gtype=gfactor*r3dvar
+        status=nf_fwrite3d(ng, model, HIS(ng)%ncid, idomeg,            &
+     &                     HIS(ng)%Vid(idomeg),                        &
+     &                     HIS(ng)%Rindex, gtype,                       &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+# ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+# endif
+     &                     OCEAN(ng) % omega_arag)
+        IF (FoundError(status, nf90_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idomeg)), HIS(ng)%Rindex
           END IF
           exit_flag=3
           ioerror=status
@@ -4187,6 +4212,36 @@
         IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
           IF (Master) THEN
             WRITE (stdout,20) TRIM(Vname(1,idkdPAR)), HIS(ng)%Rindex
+          END IF
+          exit_flag=3
+          ioerror=status
+          RETURN
+        END IF
+      END IF
+#  endif 
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Write out aragonite saturation state.
+!
+      IF (Hout(idomeg,ng)) THEN
+        scale=1.0_dp
+        IF (HIS(ng)%pioVar(idomeg)%dkind.eq.PIO_double) THEN
+          ioDesc => ioDesc_dp_r3dvar(ng)
+        ELSE
+          ioDesc => ioDesc_sp_r3dvar(ng)
+        END IF
+        status=nf_fwrite3d(ng, model, HIS(ng)%pioFile, idomeg,         &
+     &                     HIS(ng)%pioVar(idomeg),                     &
+     &                     HIS(ng)%Rindex,                              &
+     &                     ioDesc,                                      &
+     &                     LBi, UBi, LBj, UBj, 1, N(ng), scale,         &
+#  ifdef MASKING
+     &                     GRID(ng) % rmask,                            &
+#  endif
+     &                     OCEAN(ng) % omega_arag)
+        IF (FoundError(status, PIO_noerr, __LINE__, MyFile)) THEN
+          IF (Master) THEN
+            WRITE (stdout,20) TRIM(Vname(1,idomeg)), HIS(ng)%Rindex
           END IF
           exit_flag=3
           ioerror=status

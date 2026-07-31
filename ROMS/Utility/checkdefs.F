@@ -750,7 +750,24 @@
 	is=LEN_TRIM(Coptions)+1
 	Coptions(is:is+11)=' PCO2AIR_SEASONAL_SECULAR,'
 # endif
-
+# ifdef CACO3
+	IF (Master) WRITE (stdout,20) 'CACO3',                       &
+     &   'CaCO3 dynamics'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+11)=' CACO3,'
+#  ifdef USE_MOCSY
+      IF (Master) WRITE (stdout,20) 'USE_MOCSY',                       &
+     &   'Use MOCSY package to compute omega_aragonite'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+11)=' USE_MOCSY,'
+#  endif
+# endif
+# ifdef RIVER_SEDIMENT
+	IF (Master) WRITE (stdout,20) 'RIVER_SEDIMENT',                       &
+     &   'riverine non-biogenic sediment'
+	is=LEN_TRIM(Coptions)+1
+	Coptions(is:is+11)=' RIVER_SEDIMENT,'
+# endif
 #endif
 #if defined BNORM && defined HESSIAN_SV
 !

@@ -1572,6 +1572,27 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
 # endif
+# if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state
+!
+        IF (Hout(idomeg,ng)) THEN
+          Vinfo( 1)=Vname(1,idomeg)
+          Vinfo( 2)=Vname(2,idomeg)
+          Vinfo( 3)=Vname(3,idomeg)
+          Vinfo(14)=Vname(4,idomeg)
+          Vinfo(16)=Vname(1,idtime)
+# if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+# endif
+          Vinfo(21)=Vname(6,idomeg)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idomeg,ng),r8)
+          status=def_var(ng, model, HIS(ng)%ncid, HIS(ng)%Vid(idomeg), &
+     &                   NF_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+# endif
 # if defined BIO_UMAINE15 && defined CARBON
 !
 !  Define CO2 surface flux
@@ -2508,6 +2529,11 @@
             got_var(idkdPAR)=.TRUE.
             HIS(ng)%Vid(idkdPAR)=var_id(i)
 # endif
+# if defined BIO_UMAINE15 && defined CACO3
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            got_var(idomeg)=.TRUE.
+            HIS(ng)%Vid(idomeg)=var_id(i)
+# endif
 # if defined BIO_UMAINE15 && defined CARBON
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
             got_var(idfgCO2)=.TRUE.
@@ -2944,6 +2970,14 @@
 # if defined BIO_UMAINE15 && defined OPTICS_OP1
         IF (.not.got_var(idkdPAR).and.Hout(idkdPAR,ng)) THEN
           IF (Master) WRITE (stdout,70) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
+# if defined BIO_UMAINE15 && defined CACO3
+        IF (.not.got_var(idomeg).and.Hout(idomeg,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idomeg)),         &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN
@@ -4914,6 +4948,31 @@
           IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
         END IF
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state
+!
+        IF (Hout(idomeg,ng)) THEN
+          Vinfo( 1)=Vname(1,idomeg)
+          Vinfo( 2)=Vname(2,idomeg)
+          Vinfo( 3)=Vname(3,idomeg)
+          Vinfo(14)=Vname(4,idomeg)
+          Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+          Vinfo(20)='mask_rho'
+#   endif
+          Vinfo(21)=Vname(6,idomeg)
+          Vinfo(22)='coordinates'
+          Aval(5)=REAL(Iinfo(1,idomeg,ng),r8)
+          HIS(ng)%pioVar(idomeg)%dkind=PIO_FOUT
+          HIS(ng)%pioVar(idomeg)%gtype=r3dvar
+!
+          status=def_var(ng, model, HIS(ng)%pioFile,                    &
+     &                   HIS(ng)%pioVar(idomeg)%vd,                    &
+     &                   PIO_FOUT, nvd4, t3dgrd, Aval, Vinfo, ncname)
+          IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+        END IF
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
 !
 !  Define CO2 surface flux
@@ -6065,6 +6124,13 @@
             HIS(ng)%pioVar(idkdPAR)%dkind=PIO_FOUT
             HIS(ng)%pioVar(idkdPAR)%gtype=r3dvar
 # endif
+# if defined BIO_UMAINE15 && defined CACO3
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            got_var(idomeg)=.TRUE.
+            HIS(ng)%pioVar(idomeg)%vd=var_desc(i)
+            HIS(ng)%pioVar(idomeg)%dkind=PIO_FOUT
+            HIS(ng)%pioVar(idomeg)%gtype=r3dvar
+# endif
 # if defined BIO_UMAINE15 && defined CARBON
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idfgCO2))) THEN
             got_var(idfgCO2)=.TRUE.
@@ -6563,6 +6629,14 @@
 #  if defined BIO_UMAINE15 && defined OPTICS_OP1
         IF (.not.got_var(idkdPAR).and.Hout(idkdPAR,ng)) THEN
           IF (Master) WRITE (stdout,70) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+#  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+        IF (.not.got_var(idomeg).and.Hout(idomeg,ng)) THEN
+          IF (Master) WRITE (stdout,70) TRIM(Vname(1,idomeg)),         &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN

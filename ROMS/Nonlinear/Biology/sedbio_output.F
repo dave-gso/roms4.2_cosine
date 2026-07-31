@@ -1615,7 +1615,7 @@
           RETURN
         END IF
         DO i=1,NPOM
-          IF (.not.got_var(idbPM(i)).and.VarOut(idbPM(i),ng))) THEN        
+          IF (.not.got_var(idbPM(i)).and.VarOut(idbPM(i),ng)) THEN        
             IF (Master) WRITE (stdout,20) TRIM(Vname(1,idbPM(i))),     &
      &                                    TRIM(ncname)
                 exit_flag=3
@@ -1623,7 +1623,7 @@
           END IF
         END DO
         DO i=1,NPWC
-          IF (.not.got_var(idbPW(i)).and.VarOut(idbPW(i),ng))) THEN
+          IF (.not.got_var(idbPW(i)).and.VarOut(idbPW(i),ng)) THEN
             IF (Master) WRITE (stdout,20) TRIM(Vname(1,idbPW(i))),     &
      &                                    TRIM(ncname)
             exit_flag=3
@@ -1631,7 +1631,7 @@
           END IF
         END DO
         DO i=1,NDR
-          IF (.not.got_var(idbDR(i)).and.VarOut(idbDR(i),ng))) THEN
+          IF (.not.got_var(idbDR(i)).and.VarOut(idbDR(i),ng)) THEN
             IF (Master) WRITE (stdout,20) TRIM(Vname(1,idbDR(i))),     &
      &                                    TRIM(ncname)
             exit_flag=3
@@ -1639,7 +1639,7 @@
           END IF
         END DO
         DO i=1,NSF
-          IF (.not.got_var(idbSF(i)).and.VarOut(idbSF(i),ng))) THEN
+          IF (.not.got_var(idbSF(i)).and.VarOut(idbSF(i),ng)) THEN
             IF (Master) WRITE (stdout,20) TRIM(Vname(1,idbSF(i))),     &
      &                                    TRIM(ncname)
             exit_flag=3

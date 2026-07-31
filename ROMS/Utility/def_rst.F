@@ -1556,7 +1556,31 @@
      &                 nvd4, r3dgrd, Aval, Vinfo, ncname)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 # endif
-
+# if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state.
+!
+        Vinfo( 1)=Vname(1,idomeg)
+        Vinfo( 2)=Vname(2,idomeg)
+        Vinfo( 3)=Vname(3,idomeg)
+        Vinfo(14)=Vname(4,idomeg)
+        Vinfo(16)=Vname(1,idtime)
+#  if defined WRITE_WATER && defined MASKING
+#   if defined PERFECT_RESTART
+        Vinfo(24)='_FillValue'
+        Aval(6)=spval
+#   else
+        Vinfo(20)='mask_rho'
+#   endif
+#  endif
+        Vinfo(21)=Vname(6,idomeg)
+        Vinfo(22)='coordinates'
+        Aval(5)=REAL(Iinfo(1,idomeg,ng),r8)
+        status=def_var(ng, model, RST(ng)%ncid,                         &
+     &                 RST(ng)%Vid(idomeg), NF_FRST,                   &
+     &                 nvd4, r3dgrd, Aval, Vinfo, ncname)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+# endif
 #endif
 #ifdef WEC
 !
@@ -1859,6 +1883,11 @@
             got_var(idkdPAR)=.TRUE.
             RST(ng)%Vid(idkdPAR)=var_id(i)
 # endif
+# if defined BIO_UMAINE15 && defined CACO3
+          ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            got_var(idomeg)=.TRUE.
+            RST(ng)%Vid(idomeg)=var_id(i)
+# endif
 #endif
 #ifdef WEC
           ELSE IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idU2Sd))) THEN
@@ -2082,6 +2111,14 @@
 # ifdef OPTICS_OP1
         IF (.not.got_var(idkdPAR)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),         &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
+# ifdef CACO3
+        IF (.not.got_var(idomeg)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idomeg)),         &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN
@@ -3810,15 +3847,42 @@
         Vinfo(21)=Vname(6,idkdPAR)
         Vinfo(22)='coordinates'
         Aval(5)=REAL(Iinfo(1,idkdPAR,ng),r8)
-        RST(ng)%pioVar(idkdPAR%dkind=PIO_FRST
-	  RST(ng)%pioVar(idkdPAR%gtype=r3dvar
+        RST(ng)%pioVar(idkdPAR)%dkind=PIO_FRST
+	  RST(ng)%pioVar(idkdPAR)%gtype=r3dvar
 !
         status=def_var(ng, model, RST(ng)%pioFile,                      &
      &                 RST(ng)%pioVar(idkdPAR)%vd,                      &
      &                 PIO_FRST, nvd4, r3dgrd, Aval, Vinfo, ncname)
         IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
 #  endif
-
+#  if defined BIO_UMAINE15 && defined CACO3
+!
+!  Define aragonite saturation state.
+!
+        Vinfo( 1)=Vname(1,idomeg)
+        Vinfo( 2)=Vname(2,idomeg)
+        Vinfo( 3)=Vname(3,idomeg)
+        Vinfo(14)=Vname(4,idomeg)
+        Vinfo(16)=Vname(1,idtime)
+#   if defined WRITE_WATER && defined MASKING
+#    if defined PERFECT_RESTART
+        Vinfo(24)='_FillValue'
+        Aval(6)=spval
+#    else
+        Vinfo(20)='mask_rho'
+#    endif
+#   endif
+        Vinfo(21)=Vname(6,idomeg)
+        Vinfo(22)='coordinates'
+        Aval(5)=REAL(Iinfo(1,idomeg,ng),r8)
+        RST(ng)%pioVar(idomeg)%dkind=PIO_FRST
+	  RST(ng)%pioVar(idomeg)%gtype=r3dvar
+!
+        status=def_var(ng, model, RST(ng)%pioFile,                      &
+     &                 RST(ng)%pioVar(idomeg)%vd,                      &
+     &                 PIO_FRST, nvd4, r3dgrd, Aval, Vinfo, ncname)
+        IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#  endif
 # endif
 # ifdef WEC
 !
@@ -4502,6 +4566,14 @@
 # ifdef OPTICS_OP1
         IF (.not.got_var(idkdPAR)) THEN
           IF (Master) WRITE (stdout,60) TRIM(Vname(1,idkdPAR)),          &
+     &                                  TRIM(ncname)
+          exit_flag=3
+          RETURN
+        END IF
+# endif
+# ifdef CACO3
+        IF (.not.got_var(idomeg)) THEN
+          IF (Master) WRITE (stdout,60) TRIM(Vname(1,idomeg)),          &
      &                                  TRIM(ncname)
           exit_flag=3
           RETURN

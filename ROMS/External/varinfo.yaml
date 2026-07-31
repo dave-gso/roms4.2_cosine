@@ -378,7 +378,17 @@ metadata:
     type:           r3dvar
     add_offset:     0.0d0
     scale:          1.0d0
-
+    
+  - variable:       omega_arag                                            # Input/Output
+    standard_name:  sea_water_aragonite saturation_state
+    long_name:      aragonite saturation state
+    units:          nondimensional
+    field:          omega_arag
+    time:           ocean_time
+    index_code:     idomeg
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0
   #######################
   ###  Grid Geometry  ###
   #######################
@@ -2817,6 +2827,18 @@ metadata:
     type:           nulvar
     add_offset:     0.0d0
     scale:          1.0d0  
+    
+    
+  - variable:       river_CaCO                                       # Input
+    standard_name:  concentration_of_CaCO3_transport_into_sea_water_from_rivers
+    long_name:      river runoff biogenic CaCO3 concentration
+    units:          millimole_calcium meter-3      
+    field:          river CaCO
+    time:           river_time
+    index_code:     idRtrc(iCaCO)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
   #################################################
   ###  Surface/Bottom Boundary Layer Variables  ###
   #################################################
@@ -4599,6 +4621,17 @@ metadata:
     add_offset:     0.0d0
     scale:          1.0d0
     
+  - variable:       CaCO                                      # Input/Output
+    standard_name:  concentration_of biogenic_CaCO3_in_sea_water
+    long_name:      biogenic CaCO3 concentration
+    units:          millimole Calcium meter-3                
+    field:          CaCO
+    time:           ocean_time
+    index_code:     idTvar(iCaCO)
+    type:           r3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+    
   # Time-averaged Diagnostic Variables
 
   - variable:       CO2_airsea                                       # Input/Output
@@ -4853,7 +4886,29 @@ metadata:
     type:           r2dvar
     add_offset:     0.0d0
     scale:          1.0d0    
+ 
+  - variable:       PCa_benthic_flux_diagnostic                             # Input/Output
+    standard_name:  benthic flux of PCa
+    long_name:      benthic flux of particulate calcium (aragonite)
+    units:          millimole_calcium meter-2 day-1                
+    field:          benthic flux of PCa
+    time:           ocean_time
+    index_code:     iDbio2(ibPCafx)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0   
     
+  - variable:       benthic_denitrification_diagnostic 
+    standard_name:  benthic denitrification diagnostic
+    long_name:      benthic denitrification rate
+    units:          millimole_nitrogen meter-2 day-1                
+    field:          benthic denitrification rate
+    time:           ocean_time
+    index_code:     iDbio2(ibDenit)
+    type:           r2dvar
+    add_offset:     0.0d0
+    scale:          1.0d0   
+      
   # Sediment Biology Variables
   - variable:       benthic_POC                             # Input/Output
     standard_name:  mole_concentration_particulate_organic_carbon_in_sediments
@@ -4898,7 +4953,18 @@ metadata:
     type:           bs3dvar
     add_offset:     0.0d0
     scale:          1.0d0   
-    
+   
+  - variable:       benthic_PCa                             # Input/Output
+    standard_name:  mole_concentration_particulate_calcium_in_sediments
+    long_name:      concentration of particulate organic calcium in sediments
+    units:          millimole_calcium meter-3               
+    field:          benthic_PCa
+    time:           ocean_time
+    index_code:     idbPM(ibPCa)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0   
+        
   - variable:       decayrate_POC                             # Input/Output
     standard_name:  decay_rate_of_particulate_organic_carbon_in_sediments
     long_name:      decay rate of particulate organic carbon in sediments
@@ -4939,6 +5005,17 @@ metadata:
     field:          decayrate_PSi
     time:           ocean_time
     index_code:     idbDR(ibUS)
+    type:           bs3dvar
+    add_offset:     0.0d0
+    scale:          1.0d0    
+
+  - variable:       decayrate_PCa                             # Input/Output
+    standard_name:  decay_rate_of_particulate_CaCO3_in_sediments
+    long_name:      decay rate of particulate CaCO3 in sediments
+    units:          day-1               
+    field:          decayrate_PCa
+    time:           ocean_time
+    index_code:     idbDR(ibUCa)
     type:           bs3dvar
     add_offset:     0.0d0
     scale:          1.0d0    
@@ -6495,6 +6572,50 @@ metadata:
     field:          Rsed northern-boundary
     time:           ocean_time
     index_code:     idTbry(inorth,iRsed)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+ 
+  - variable:       CaCO_east                                        # Input
+    standard_name:  concentration_of_biogenic_CaCO3_in_sea_water
+    long_name:      Biogenic CaCO3 eastern boundary condition
+    units:          millimole Calcium meter-3                 
+    field:          CaCO eastern-boundary
+    time:           ocean_time
+    index_code:     idTbry(ieast,iCaCO)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0 
+ 
+  - variable:       CaCO_west                                        # Input
+    standard_name:  concentration_of_biogenic_CaCO3_in_sea_water
+    long_name:      Biogenic CaCO3 western boundary condition
+    units:          millimole Calcium meter-3                 
+    field:          CaCO western-boundary
+    time:           ocean_time
+    index_code:     idTbry(iwest,iCaCO)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+ 
+  - variable:       CaCO_south                                        # Input
+    standard_name:  concentration_of_biogenic_CaCO3_in_sea_water
+    long_name:      Biogenic CaCO3 southern boundary condition
+    units:          millimole Calcium meter-3                 
+    field:          CaCO southern-boundary
+    time:           ocean_time
+    index_code:     idTbry(isouth,iCaCO)
+    type:           nulvar
+    add_offset:     0.0d0
+    scale:          1.0d0  
+ 
+  - variable:       CaCO_north                                        # Input
+    standard_name:  concentration_of_biogenic_CaCO3_in_sea_water
+    long_name:      Biogenic CaCO3 northern boundary condition
+    units:          millimole Calcium meter-3                 
+    field:          CaCO northern-boundary
+    time:           ocean_time
+    index_code:     idTbry(inorth,iCaCO)
     type:           nulvar
     add_offset:     0.0d0
     scale:          1.0d0  

@@ -832,9 +832,11 @@
               ELSE IF (INT(Aval(5)).eq.b3dvar) THEN
                 text='lon_rho lat_rho'
                 location='face'
+# ifdef SEDBIO
 		  ELSE IF (INT(Aval(5)).eq.bs3dvar) THEN
                 text='lon_rho lat_rho nspc'
                 location='face'
+# endif
               ELSE IF (INT(Aval(5)).eq.u2dvar) THEN
                 text='lon_u lat_u'
                 location='edge1'
@@ -898,9 +900,11 @@
               ELSE IF (INT(Aval(5)).eq.b3dvar) THEN
                 text='x_rho y_rho'
                 location='face'
+# ifdef SEDBIO
 		  ELSE IF (INT(Aval(5)).eq.bs3dvar) THEN
                 text='x_rho y_rho nspc'
                 location='face'
+# endif
               ELSE IF (INT(Aval(5)).eq.u2dvar) THEN
                 text='x_u y_u'
                 location='edge1'
@@ -1829,9 +1833,11 @@
             ELSE IF (INT(Aval(5)).eq.b3dvar) THEN
               text='lon_rho lat_rho'
               location='face'
+# ifdef SEDBIO
 		ELSE IF (INT(Aval(5)).eq.bs3dvar) THEN
                 text='lon_rho lat_rho nspc'
                 location='face'
+# endif
             ELSE IF (INT(Aval(5)).eq.u2dvar) THEN
               text='lon_u lat_u'
               location='edge1'
@@ -1895,9 +1901,11 @@
             ELSE IF (INT(Aval(5)).eq.b3dvar) THEN
               text='x_rho y_rho'
               location='face'
+# ifdef SEDBIO
 		ELSE IF (INT(Aval(5)).eq.bs3dvar) THEN
                 text='x_rho y_rho nspc'
                 location='face'
+# endif
             ELSE IF (INT(Aval(5)).eq.u2dvar) THEN
               text='x_u y_u'
               location='edge1'

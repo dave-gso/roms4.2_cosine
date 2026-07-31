@@ -596,7 +596,11 @@
           Je=IOBOUNDS(ng) % JUB_psi
           Ioff=0
           Joff=1
+# ifdef SEDBIO
         CASE (r2dvar, a3dvar, b3dvar, l3dvar, l4dvar, r3dvar, bs3dvar)
+# else
+        CASE (r2dvar, a3dvar, b3dvar, l3dvar, l4dvar, r3dvar)
+# endif
           Cgrid=2
           Is=IOBOUNDS(ng) % ILB_rho
           Ie=IOBOUNDS(ng) % IUB_rho

@@ -128,6 +128,11 @@
               Npts=load_l(Nval, Cval, Ngrids, Lswitch)
               Sout(idkdPAR,1:Ngrids)=Lswitch(1:Ngrids)
 #  endif
+#  if defined BIO_UMAINE15 && defined CACO3
+            CASE('Sout(idomeg)')
+              Npts=load_l(Nval, Cval, Ngrids, Lswitch)
+              Sout(idomeg,1:Ngrids)=Lswitch(1:Ngrids)
+#  endif
 #  if defined BIO_UMAINE15 && defined CARBON
             CASE('Sout(idfgCO2)')
               Npts=load_l(Nval, Cval, Ngrids, Lswitch)
@@ -968,6 +973,11 @@
             IF (Sout(idkdPAR,ng)) WRITE (out,90) Sout(idkdPAR,ng),      &
      &          'Sout(idkdPAR)',                                         &
      &          'Write out light attenuation coefficient.'
+# endif
+# if defined BIO_UMAINE15 && defined CACO3
+            IF (Sout(idomeg,ng)) WRITE (out,90) Sout(idomeg,ng),      &
+     &          'Sout(idomeg)',                                         &
+     &          'Write out aragonite saturation state.'
 # endif
 # if defined BIO_UMAINE15 && defined CARBON
             IF (Sout(idfgCO2,ng)) WRITE (out,90) Sout(idfgCO2,ng),      &

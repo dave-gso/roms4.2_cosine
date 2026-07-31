@@ -9,12 +9,22 @@
       PUBLIC :: initialize_sedbio
 
       integer, parameter :: nspc = 3   ! number of sediment particulate classes
+#ifdef CACO3
+      integer, parameter :: NPOM = 5   ! number of POM variables
+                                       ! (ibPOC, ibPON, ibPOP, ibPSi, ibPCa)
+#else
       integer, parameter :: NPOM = 4   ! number of POM variables
                                        ! (ibPOC, ibPON, ibPOP, ibPSi)
+#endif
       integer, parameter :: NPWC = 6   ! number of pore water conc. variables
                                        ! (ibNO3, ibNH4, ibPO4, ibSi, ibTIC, ibAlk)
+#ifdef CACO3
+      integer, parameter :: NDR = 5    ! number of decay rate variables
+                                       ! (ibUC, ibUN, ibUP, ibUS, ibUCa)
+#else
       integer, parameter :: NDR = 4    ! number of decay rate variables
                                        ! (ibUC, ibUN, ibUP, ibUS)
+#endif
       integer, parameter :: NSF = 7    ! number of sediment-water flux variables
                                        ! (ibJNO3, ibJNH4, ibJPO4, ibJSi, ibSOD, ibJTIC, ibJALK)
       integer :: NBBT                  ! total number of sediment bio variables
@@ -26,6 +36,9 @@
       integer, parameter  :: ibPON = 2        ! benthic PON concentration
       integer, parameter  :: ibPOP = 3        ! benthic POP concentration
       integer, parameter  :: ibPSi = 4        ! benthic Silicate concentration
+#ifdef CACO3
+      integer, parameter  :: ibPCa = 5        ! benthic Calcite/Aragonite concentration
+#endif
       integer :: idbPW(NPWC)      ! Benthic pore water concentration tracers
       integer :: ibbPW(NPWC)      ! indices for SEDBIOL arrays
       integer, parameter  :: ibNO3 = 1        ! pore water NO3 concentration
@@ -40,6 +53,9 @@
       integer, parameter   :: ibUN = 2        ! decay rate of particulate nitrogen
       integer, parameter   :: ibUP = 3        ! decay rate of particulate Phosphorus
       integer, parameter   :: ibUS = 4        ! decay rate of particulate Silicate
+#ifdef CACO3
+      integer, parameter   :: ibUCa = 5       ! decay rate of Calcite/Aragonite
+#endif      
       integer :: idbSF(NSF)       ! Benthic fluxes
       integer :: ibbSF(NSF)       ! indices for SEDBIOL arrays
       integer, parameter  :: ibJNO3 = 1       ! benthic flux of NO3
@@ -58,6 +74,9 @@
 !   sedPOM(:,:,:,ibPON) => Particulate organic nitrogen concentration
 !   sedPOM(:,:,:,ibPOP) => Particulate organic phosphorous concentration
 !   sedPOM(:,:,:,ibPSi) => Particulate silicon concentration
+#ifdef CACO3
+!   sedPOM(:,:,:,ibPCa) => Particulate calcite/aragonite concentration
+#endif
 
 !   sedPoreWaterCon(:,:,ibNO3) => pore water nitrate concentration
 !   sedPoreWaterCon(:,:,ibNH4) => pore water ammonium concentration
@@ -70,7 +89,9 @@
 !   sedDecayRate(:,:,:,ibUN)   => decay rate of particulate nitrogen
 !   sedDecayRate(:,:,:,ibUP)   => decay rate of particulate phosphorous
 !   sedDecayRate(:,:,:,ibUS)   => decay rate of particulate silicon
-
+#ifdef CACO3
+!   sedDecayRate(:,:,:,ibUCa)   => decay rate of particulate CaCO3
+#endif
 !   sedFlux(:,:,ibJNO3)  => flux of nitrate between sediment and water
 !   sedFlux(:,:,ibJNH4)  => flux of ammonium between sediment and water
 !   sedFlux(:,:,ibJPO4)  => flux of phosphate between sediment and water

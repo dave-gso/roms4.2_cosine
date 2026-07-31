@@ -203,6 +203,9 @@
 #  ifdef OPTICS_OP1
         get_var(idkdPAR)=.TRUE.
 #  endif
+#  ifdef CACO3
+        get_var(idomeg)=.TRUE.
+#  endif
 # endif
 # if defined T_PASSIVE
 #  if defined ANA_PASSIVE
@@ -558,6 +561,11 @@
             have_var(idkdPAR)=.TRUE.
         END IF
 # endif
+# ifdef CACO3
+        IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            have_var(idomeg)=.TRUE.
+        END IF
+# endif
 #endif
       END DO
 !
@@ -913,6 +921,16 @@
         RETURN
       END IF
 # endif
+# ifdef CACO3
+      IF (.not.have_var(idomeg).and.                                 &
+     &      get_var(idomeg)) THEN
+        IF (Master) WRITE (stdout,10) string,                         &
+     &                                  TRIM(Vname(1,idomeg)),       &
+     &                                  TRIM(ncname)
+        exit_flag=2
+        RETURN
+      END IF
+# endif
 #endif
 !
   10  FORMAT (/,a,'CHECKVARS_NF90 - unable to find model variable: ',a, &
@@ -1053,6 +1071,9 @@
 #  endif
 #  ifdef OPTICS_OP1
         get_var(idkdPAR)=.TRUE.
+#  endif
+#  ifdef CACO3
+        get_var(idomeg)=.TRUE.
 #  endif
 #  if defined T_PASSIVE
 #   if defined ANA_PASSIVE
@@ -1408,6 +1429,11 @@
             have_var(idkdPAR)=.TRUE.
         END IF
 #  endif
+#  ifdef CACO3
+        IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idomeg))) THEN
+            have_var(idomeg)=.TRUE.
+        END IF
+#  endif
 # endif
       END DO
 !
@@ -1758,6 +1784,16 @@
      &      get_var(idkdPAR)) THEN
         IF (Master) WRITE (stdout,10) string,                         &
      &                                  TRIM(Vname(1,idkdPAR)),       &
+     &                                  TRIM(ncname)
+        exit_flag=2
+        RETURN
+      END IF
+#  endif
+#  ifdef CACO3
+      IF (.not.have_var(idomeg).and.                                 &
+     &      get_var(idomeg)) THEN
+        IF (Master) WRITE (stdout,10) string,                         &
+     &                                  TRIM(Vname(1,idomeg)),       &
      &                                  TRIM(ncname)
         exit_flag=2
         RETURN

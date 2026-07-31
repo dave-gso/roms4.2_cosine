@@ -33,6 +33,12 @@
 !    iHphy      HAB Phytoplankton                                      !
 !    iChl3      Chlorophyll in HAB Phytoplankton                       !
 #endif
+#ifdef RIVER_SEDIMENT
+!    iRsed      Non-biogenic river-derived sediment                    !
+#endif
+#ifdef CACO3
+!    iCaCO      biogenic CaCO3                                         !
+#endif
 !                                                                      !
 !  Please cite:                                                        !
 !                                                                      !
@@ -142,6 +148,9 @@
      &                   FORCES(ng) % zenith_ang,                      &
 # endif
 #endif
+#ifdef CACO3
+     &                   OCEAN(ng) % omega_arag,                       &
+#endif
 #ifdef DIAGNOSTICS_BIO
      &                   DIAGS(ng) % DiaBio2d,                         &
      &                   DIAGS(ng) % DiaBio3d,                         &
@@ -192,6 +201,9 @@
      &                         zenith_ang,                             &
 # endif
 #endif
+#ifdef CACO3
+     &                         omega_arag,                             &
+#endif
 #ifdef DIAGNOSTICS_BIO
      &                         DiaBio2d, DiaBio3d,                     &
 #endif
@@ -217,6 +229,10 @@
 #endif
 #if defined CARBON && defined PCO2AIR_SEASONAL_SECULAR
       USE dateclock_mod, ONLY : caldate
+#endif
+#if defined CACO3 && defined USE_MOCSY
+!      USE msingledouble
+      USE mvars
 #endif
 
 !
@@ -254,6 +270,9 @@
 ! AKB 6/22/23
       real(r8), intent(inout) :: fgCO2(LBi:,LBj:)
       real(r8), intent(inout) :: pCO2s(LBi:,LBj:)
+#  ifdef CACO3
+      real(r8), intent(inout) :: omega_arag(LBi:,LBj:,:)
+#  endif
 # endif
 # ifdef OPTICS_OP1
       real(r8), intent(inout) :: kdpar(LBi:,LBj:,:)
@@ -301,6 +320,9 @@
 ! AKB 6/22/23
       real(r8), intent(inout) :: fgCO2(LBi:UBi,LBj:UBj)
       real(r8), intent(inout) :: pCO2s(LBi:UBi,LBj:UBj)
+#  ifdef CACO3
+      real(r8), intent(inout) :: omega_arag(LBi:UBi,LBj:UBj,UBk)
+#  endif
 # endif
 # ifdef OPTICS_OP1
       real(r8), intent(inout) :: kdpar(LBi:UBi,LBj:UBj,UBk)
@@ -326,22 +348,38 @@
 !
 #ifdef RIVER_SEDIMENT
 # ifdef HAB
+#  ifdef CACO3
+      integer, parameter :: Nsink = 10
+#  else
       integer, parameter :: Nsink = 9
+#  endif
 # else
+#  ifdef CACO3
+      integer, parameter :: Nsink = 8
+#  else
       integer, parameter :: Nsink = 7
+#  endif
 # endif
 #else
 # ifdef HAB
+#  ifdef CACO3
+      integer, parameter :: Nsink = 9
+#  else
       integer, parameter :: Nsink = 8
+#  endif
 # else
+#  ifdef CACO3
+      integer, parameter :: Nsink = 7
+#  else      
       integer, parameter :: Nsink = 6
+#  endif
 # endif
 #endif
 #if defined OXYGEN || defined CARBON
       real(r8) :: u10squ, u10spd
 #endif
 
-      integer :: Iter, i, indx, isink, ibio, ivar, j, k, ks,is,ii,jj
+      integer :: Iter, i, indx, isink, ibio, ivar, j, k, ks,is,ii,jj,ic
 
       integer, dimension(Nsink) :: idsink
 
@@ -366,6 +404,10 @@
 #ifdef CARBON
       real(r8), dimension(LBi:UBi) :: co2flx
       real(r8), dimension(LBi:UBi) :: pco2sf
+# ifdef CACO3
+      real(r8), parameter :: alpha_om=0.01_r8
+!      real(r8), parameter :: omega_thresh=1.0_r8
+# endif
 #endif
 
       integer, parameter :: mmax = 31
@@ -381,6 +423,9 @@
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bPON
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bPOP
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bPSi
+# ifdef CACO3
+      real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bPCa
+# endif
       real(r8), dimension(LBi:UBi,LBj:UBj) :: bNO3
       real(r8), dimension(LBi:UBi,LBj:UBj) :: bNH4
       real(r8), dimension(LBi:UBi,LBj:UBj) :: bPO4
@@ -395,11 +440,15 @@
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bUN
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bUP
       real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bUS
+# ifdef CACO3
+      real(r8), dimension(LBi:UBi,LBj:UBj,nspc) :: bUCa
+# endif
       real(r8), dimension(LBi:UBi,LBj:UBj) :: JNO3
       real(r8), dimension(LBi:UBi,LBj:UBj) :: JNH4
       real(r8), dimension(LBi:UBi,LBj:UBj) :: JPO4
       real(r8), dimension(LBi:UBi,LBj:UBj) :: JSi
       real(r8), dimension(LBi:UBi,LBj:UBj) :: SOD
+      real(r8), dimension(LBi:UBi,LBj:UBj) :: Jdenit
 # ifdef CARBON
       real(r8), dimension(LBi:UBi,LBj:UBj) :: JTIC
 #  ifdef TALK_NONCONSERV
@@ -414,7 +463,7 @@
       real(r8), dimension(LBi:UBi,N(ng)) :: Hz_inv3
       real(r8), dimension(LBi:UBi,N(ng)) :: hzl
 
-      real(r8), dimension(LBi:UBi,N(ng)+1) :: PIO
+      real(r8), dimension(LBi:UBi,N(ng)+1) :: PAR_Z
       real(r8), dimension(LBi:UBi,N(ng)) :: PAR
       real(r8), dimension(LBi:UBi,N(ng)) :: ADPT
 #ifdef OPTICS_OP1
@@ -478,6 +527,9 @@
       real(r8), dimension(LBi:UBi) :: FPON
       real(r8), dimension(LBi:UBi) :: FPOP
       real(r8), dimension(LBi:UBi) :: FPSi
+# ifdef CACO3
+      real(r8), dimension(LBi:UBi) :: FPCa
+# endif
 #endif
 #ifdef CARBON
       real(r8) :: pCO2atm
@@ -492,9 +544,53 @@
 	real(r8), parameter :: c4 = -0.298136_r8
 	integer :: wrote_co2air
 # endif
+# ifdef CACO3
+      real(r8) :: npp,caco3_prod,caco3_diss
+#   ifdef USE_MOCSY
+	real(r8), allocatable :: T1d(:),S1d(:),Alk1d(:),DIC1d(:),Si1d(:),PO41d(:)
+	real(r8), allocatable :: patm1d(:),dep1d(:),lat1d(:)
+	real(r8), allocatable :: ph1(:),pco2(:),fco2(:),co2(:),hco3(:),co31d(:)
+	real(r8), allocatable :: omA(:),omC(:),BetaD(:),rho1(:),pr(:),Tis(:)
+	character (len= 6), parameter :: optCON = 'mol/m3'
+	character (len= 7), parameter :: optT = 'Tpot   '
+	character (len= 2), parameter :: optP = 'm '
+	character (len= 3), parameter :: optB = 'l10'
+	character (len= 3), parameter :: optK1K2 = 'm10'
+	character (len= 2), parameter :: optKf = 'dg'
+	character (len= 7), parameter :: optGAS = 'Pinsitu'
+	character (len= 4), parameter :: optS = 'Sprc'
+	integer :: n1dpts, ncnt
+#   endif
+# endif
 #endif
 
 #include "set_bounds.h"
+
+#if defined CACO3 && defined USE_MOCSY
+! allocate 1d I/O arrays for MOCSY
+      n1dpts=N(ng)*(Iend-Istr+1)
+      allocate(T1d(n1dpts))
+      allocate(S1d(n1dpts))
+      allocate(Alk1d(n1dpts))
+      allocate(DIC1d(n1dpts))
+      allocate(Si1d(n1dpts))
+      allocate(PO41d(n1dpts))
+      allocate(patm1d(n1dpts))
+      allocate(dep1d(n1dpts))
+      allocate(lat1d(n1dpts))
+      allocate(ph1(n1dpts))
+      allocate(pco2(n1dpts))
+      allocate(fco2(n1dpts))
+      allocate(co2(n1dpts))
+      allocate(hco3(n1dpts))
+      allocate(co31d(n1dpts))
+      allocate(omA(n1dpts))
+      allocate(omC(n1dpts))
+      allocate(BetaD(n1dpts))
+      allocate(rho1(n1dpts))
+      allocate(pr(n1dpts))
+      allocate(Tis(n1dpts))
+#endif
 
 #ifdef PCO2AIR_SEASONAL_SECULAR
       wrote_co2air=0
@@ -563,17 +659,20 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       idsink(4)=iSphy
       idsink(5)=iChl1
       idsink(6)=iChl2
+      ic=6
 #ifdef HAB
-      idsink(7)=iHphy
-      idsink(8)=iChl3
-# ifdef RIVER_SEDIMENT
-      idsink(9)=iRsed
-# endif
-#else
-# ifdef RIVER_SEDIMENT
-      idsink(7)=iRsed
-# endif
+      idsink(ic+1)=iHphy
+      idsink(ic+2)=iChl3
+      ic=ic+2
 #endif
+#ifdef RIVER_SEDIMENT
+      idsink(ic+1)=iRsed
+      ic=ic+1
+#endif
+#ifdef CACO3
+      idsink(ic+1)=iCaCO
+#endif
+
 !
 !  Set vertical sinking velocity vector in the same order as the
 !  identification vector, IDSINK.
@@ -584,17 +683,20 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
       Wbio(4)=0.0_r8                ! iSphy
       Wbio(5)=0.0_r8                ! iSphy ichl1
       Wbio(6)=wsp(ng)                ! iLphy ichl2
+      ic=6
 #ifdef HAB
-      Wbio(7)=wsp3(ng)              ! iHphy
-      Wbio(8)=wsp3(ng)              ! iChl3
-# ifdef RIVER_SEDIMENT
-      Wbio(9)=wsrsed(ng)
-# endif
-#else
-# ifdef RIVER_SEDIMENT
-      Wbio(7)=wsrsed(ng)
-# endif
+      Wbio(ic+1)=wsp3(ng)              ! iHphy
+      Wbio(ic+2)=wsp3(ng)              ! iChl3
+      ic=ic+2
 #endif
+#ifdef RIVER_SEDIMENT
+      Wbio(ic+1)=wsrsed(ng)
+      ic=ic+1
+#endif
+#ifdef CACO3
+      Wbio(ic+1)=wsPCa(ng)
+#endif
+
 #ifdef SEDBIO
 !  Extract sediment biology variables from full arrays
       DO j=Jstr,Jend
@@ -604,11 +706,16 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
             bPON(i,j,k)=sedPOM(i,j,k,ibPON)     ! NPOM = ibPON = 2: benthic PON conc
             bPOP(i,j,k)=sedPOM(i,j,k,ibPOP)     ! NPOM = ibPOP = 3: benthic POP conc
             bPSi(i,j,k)=sedPOM(i,j,k,ibPSi)     ! NPOM = ibPSi = 4: benthic Si conc
-
+# ifdef CACO3
+            bPCa(i,j,k)=sedPOM(i,j,k,ibPCa)     ! NPOM = ibPCa = 5: benthic CaCO3 conc
+# endif
             bUC(i,j,k)=sedDecayRate(i,j,k,ibUC) ! NDR = ibUC = 1: decay rate of POC
             bUN(i,j,k)=sedDecayRate(i,j,k,ibUN) ! NDR = ibUN = 2: decay rate PON
             bUP(i,j,k)=sedDecayRate(i,j,k,ibUP) ! NDR = ibUP = 3: decay rate POP
             bUS(i,j,k)=sedDecayRate(i,j,k,ibUS) ! NDR = ibUS = 4: decay rate PSi
+# ifdef CACO3
+            bUCa(i,j,k)=sedDecayRate(i,j,k,ibUCa) ! NDR = ibUCa = 5: decay rate CaCO3
+# endif
           END DO
 
           bNO3(i,j)=sedPoreWaterCon(i,j,ibNO3)      ! NPWC = ibNO3 = 1
@@ -647,6 +754,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
             FPON(i)=0.0
             FPOP(i)=0.0
             FPSi(i)=0.0
+# ifdef CACO3
+            FPCa(i)=0.0
+# endif
         END DO
 #endif
 !
@@ -724,6 +834,41 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
           PARsur(i)=PARfrac(ng)*srflx(i,j)*rho0*Cp
         END DO
 !
+#if defined CACO3 && defined USE_MOCSY
+      IF( optics_call.eq.1 ) then
+!  Compute aragonite saturation state only at intervals specified by optics_call
+!  set up 1d input arrays for MOCSY (convert concentrations to mol/m3)
+        ncnt=0
+        DO k=1,N(ng)
+          DO i=Istr,Iend
+            ncnt=ncnt+1
+            T1d(ncnt)=Bio(i,k,itemp)
+            S1d(ncnt)=Bio(i,k,isalt)
+            Alk1d(ncnt)=Bio(i,k,iTAlk)*0.001_r8
+            DIC1d(ncnt)=Bio(i,k,iTIC_)*0.001_r8
+            Si1d(ncnt)=Bio(i,k,iSiOH)*0.001_r8
+            PO41d(ncnt)=Bio(i,k,iPO4_)*0.001_r8
+            patm1d(ncnt)=1.0_r8		! setting atm pressure to 1
+            dep1d(ncnt)=-z_r(i,j,k)		! negative sign to make depth positive
+            lat1d(ncnt)=41.0_r8		! temporarily set lat to 41N
+          END DO
+	  END DO
+
+!  compute carbonate system parameters
+      call vars(ph1,pco2,fco2,co2,hco3,co31d,omA,omC,BetaD,rho1,pr,Tis,   &
+     &T1d,S1d,Alk1d,DIC1d,Si1d,PO41d,patm1d,dep1d,lat1d,ncnt,             &
+     &optCON,optT,optP,optB,optK1K2,optKf,optGAS,optS)
+     
+!  extract omega (aragonite)
+      ncnt=0
+      DO k=1,N(ng)
+        DO i=Istr,Iend
+          ncnt=ncnt+1
+          omega_arag(i,j,k)=omA(ncnt)
+	  END DO
+       END DO
+      END IF
+#endif
 !=======================================================================
 !  Start internal iterations to achieve convergence of the nonlinear
 !=======================================================================
@@ -745,7 +890,7 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 !  Then, photosynthetically available radiation (PAR) are calculated
 !  as the depth-averaged PAR within the vertical grid. Since the light
 !  penetreated from surface to bottom, so the PAR are calculated in the 
-!  same order. PARsur is surface PAR value. PIO is the PAR value at 
+!  same order. PARsur is surface PAR value. PAR_Z is the PAR value at 
 !  surface or bottom of a vertical grid, or at w location vertically.
 !
 #ifdef OPTICS_OP1
@@ -781,8 +926,8 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #endif
 
     DO i=Istr,Iend
-      PIO(i,N(ng)+1)=PARsur(i)
-      IF (PIO(i,N(ng)+1) .lt. 0.0_r8) PIO(i,N(ng)+1)=0.0_r8
+      PAR_Z(i,N(ng)+1)=PARsur(i)
+      IF (PAR_Z(i,N(ng)+1) .lt. 0.0_r8) PAR_Z(i,N(ng)+1)=0.0_r8
       DO k=N(ng),1,-1
 
 #ifdef OPTICS_OP1
@@ -795,9 +940,9 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #   endif
 #endif
        
-       PIO(i,K)=PIO(i,K+1)*EXP(-cff1)
+       PAR_Z(i,K)=PAR_Z(i,K+1)*EXP(-cff1)
 ! average PAR over layer:
-       PAR(i,K)=(PIO(i,K+1)-PIO(i,K))/cff1
+       PAR(i,K)=(PAR_Z(i,K+1)-PAR_Z(i,K))/cff1
 ! variable ADPT only used if no chlorophyll variable used
        ADPT(i,K) = 1.0_r8-4.0_r8*z_r(i,j,k)/zeptic
       END DO
@@ -1152,6 +1297,53 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 #   endif
 #  endif
 # endif      
+#endif
+
+#if defined CARBON && defined CACO3
+!     -------------------------------------------------------
+!     Production of biogenic CaCO3
+!     _______________________________________________________
+      npp=nps1+nps2+rps1+rps2
+# ifdef HAB
+      npp=npp+nps3+rps3
+# endif
+# ifdef PHYTO_RESP
+      npp=npp-resps1-resps2-resps1g-resps2g
+#  ifdef HAB
+      npp=npp-resps3-resp3g
+#  endif
+# endif
+! production rate in carbon units
+      caco3_prod=cacopf(ng)*npp*c2n(ng)
+! update CaCO3 concentration
+      Bio(i,k,iCaCO)=Bio(i,k,iCaCO)+caco3_prod
+! TIC change
+      Bio(i,k,iTIC_)=Bio(i,k,iTIC_)-caco3_prod
+# ifdef TALK_NONCONSERV
+      Bio(i,k,iTAlk)=Bio(i,k,iTAlk)-2.0_r8*caco3_prod
+# endif
+
+!     -------------------------------------------------------
+!     Dissolution of biogenic CaCO3
+!     _______________________________________________________
+# if defined CACO3 && defined TALK_NONCONSERV
+#  ifndef USE_MOCSY
+      ! estimate aragonite saturation state from Alk and TIC
+      omega_arag(i,j,k)=alpha_om*(Bio(i,k,iTAlk)-Bio(i,k,iTIC_))
+#  endif
+      if( omega_arag(i,j,k).le.omega_thresh(ng) ) then
+      ! dissolution occurs
+         cff=dtdays*cacodr(ng)
+	  ! update CaCO3 concentration (implicit)
+         Bio(i,k,iCaCO)=Bio(i,k,iCaCO)/(1.0_r8+cff)
+         caco3_diss=cff*Bio(i,k,iCaCO)
+        ! TIC change
+         Bio(i,k,iTIC_)=Bio(i,k,iTIC_)+caco3_diss
+        ! TAlk change
+         Bio(i,k,iTAlk)=Bio(i,k,iTAlk)+2.0_r8*caco3_diss
+      end if
+# endif
+
 #endif
 
 !     -------------------------------------------------------
@@ -1681,9 +1873,6 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
             DO k=1,N(ng)
               DO i=Istr,Iend
                 qc(i,k)=Bio(i,k,indx)
-!                if( i.eq.309.and.j.eq.387.and.indx.eq.11 ) then
-!		    	write(*,*)'prior: i=',i,'j=',j,'k=',k,'bio=',Bio(i,k,indx)
-!		    end if
               END DO
             END DO
 !
@@ -1873,34 +2062,47 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
               FPON(i)=FPON(i)+FC(i,0)/dtdays
               FPSi(i)=FPSi(i)+FC(i,0)*si2n(ng)/dtdays
 #    endif
+#    ifdef CACO3
+             ELSE IF( idsink(isink).eq.iCaCO ) THEN
+              ! biogenic CaCO3
+              FPCa(i)=FPCa(i)+FC(i,0)/dtdays
+#    endif
             END IF
             
           END DO
 #  endif
     END DO SINK_LOOP
-      
+
+#  ifdef SEDBIO      
         DO i=Istr,Iend
             ! compute carbon, phosporous flux from nitrogen flux
             FPOC(i)= FPON(i)*c2n(ng)
             FPOP(i)= FPON(i)*p2n(ng)
                                    
-# ifdef DIAGNOSTICS_BIO
+#   ifdef DIAGNOSTICS_BIO
             DiaBio2d(i,j,ibPONfx)=DiaBio2d(i,j,ibPONfx)+               &
-#  ifdef WET_DRY
+#    ifdef WET_DRY
      &                          rmask_io(i,j)*                         &
-#  endif
+#    endif
      &                          FPON(i)*dtdays
                                    
             DiaBio2d(i,j,ibPSifx)=DiaBio2d(i,j,ibPSifx)+               &
-#  ifdef WET_DRY
+#    ifdef WET_DRY
      &                          rmask_io(i,j)*                         &
-#  endif
+#    endif
      &                          FPSi(i)*dtdays
-# endif
+#    ifdef CACO3
+            DiaBio2d(i,j,ibPCafx)=DiaBio2d(i,j,ibPCafx)+               &
+#     ifdef WET_DRY
+     &                          rmask_io(i,j)*                         &
+#     endif
+     &                          FPCa(i)*dtdays
+#    endif
+#   endif
                                    
         END DO
               
-# ifdef SEDBIO
+!# ifdef SEDBIO
 	  
         call sediment_bio(ng, Istr, Iend, LBi, UBi,                    &
      &                      dtdays,                                    &
@@ -1920,13 +2122,21 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &                      JNO3(LBi:,j), JNH4(LBi:,j),                &
      &                      JPO4(LBi:,j), JSi(LBi:,j), SOD(LBi:,j),    &
 #   ifdef CARBON
-    &                      Bio(LBi:,1,iTIC_), bTIC(LBi:,j),            &
-    &                      JTIC(LBi:,j),                               &
+     &                      Bio(LBi:,1,iTIC_), bTIC(LBi:,j),           &
+     &                      JTIC(LBi:,j),                              &
 #    ifdef TALK_NONCONSERV
-    &                      Bio(LBi:,1,iTAlk), bAlk(LBi:,j),            &
-    &                      JAlk(LBi:,j))
+     &                      Bio(LBi:,1,iTAlk), bAlk(LBi:,j),           &
+     &                      JAlk(LBi:,j)                               &
+#    endif
+#    ifdef CACO3
+     &                      ,FPCa, bPCa(LBi:,j,:), bUCa(LBi:,j,:),     &
+     &                      omega_arag(LBi:,j,1)                       &
+#    endif
+#    ifdef DIAGNOSTICS_BIO
+     &                      ,Jdenit(LBi:,j)                            &
 #    endif
 #   endif
+     &                      )
 
 ! WRITTEN IN SEDIMENT_BIOLOGY.F AS FOLLOWS-------------------------------
 ! SUBROUTINE sediment_bio(ng, Istr, Iend, LBi, UBi,                &    
@@ -1935,7 +2145,7 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 !     &                      rmask,                                     &    
 !   endif
 !     &                      temp, DOX, dNO3, dNH4, dPO4, dSiO4,        &    
-!     &                      FPOC, FPON, FPOP, FPSi,                    &    
+!     &                      FPOC, FPON, FPOP, FPSi,                    &  
 !     &                      bPOC, bPON, bPOP, bPSi,                    &    
 !     &                      bNO3, bNH4, bPO4, bSi,                     &    
 !     &                      bUC, bUN, bUP, bUS,                        &    
@@ -1943,8 +2153,11 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
 !ifdef CARBON
 !     &                      dTIC, bTIC, JTIC,                          &    
 !ifdef TALK_NONCONSERV
-!     &                      dAlk, bAlk, JAlk)
+!     &                      dAlk, bAlk, JAlk,                          &
 !endif
+!   ifdef CACO3
+!     &                      FPCa, bPCa, bUCa, omega_arag )             &
+!   endif  
 !endif
 ! -----------------------------------------------------------------------
 ! ORDER OF ARGUMENTS:           temp, oxygen, dNO3, dNH4, dPO4, dSiO4, FPOC, FPON,
@@ -2010,6 +2223,11 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &                          rmask_io(i,j)*                         &
 #   endif
      &                          SOD(i,j)*dtdays
+            DiaBio2d(i,j,ibDenit)=DiaBio2d(i,j,ibDenit)+               &
+#   ifdef WET_DRY
+     &                          rmask_io(i,j)*                         &
+#   endif
+     &                          Jdenit(i,j)*dtdays
 
             IF ( (MOD(iic(ng),nDIA(ng)).eq.0) ) THEN
             ! divide 2d diagnostic sums by the number of bio iterations.
@@ -2096,6 +2314,10 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
               sedDecayRate(i,j,k,ibUN)=bUN(i,j,k)
               sedDecayRate(i,j,k,ibUP)=bUP(i,j,k)
               sedDecayRate(i,j,k,ibUS)=bUS(i,j,k)
+# ifdef CACO3
+              sedPOM(i,j,k,ibPCa)=bPCa(i,j,k)
+              sedDecayRate(i,j,k,ibUCa)=bUCa(i,j,k)
+# endif
             END DO
             sedPoreWaterCon(i,j,ibNO3)=bNO3(i,j)
             sedPoreWaterCon(i,j,ibNH4)=bNH4(i,j)
@@ -2138,13 +2360,23 @@ Chl2ns3_m=Chl2cs3_m(ng)*c2n(ng)*12.0_r8
      &			 LBi, UBi, LBj, UBj, 1, nspc, 1, NPOM,          &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 sedPOM)
-     
+# endif
+#endif
+
+#ifdef DISTRIBUTE
+#  ifdef OPTICS_OP1   
       call mp_exchange3d(ng, tile, iNLM, 1,                             &
      &			 LBi, UBi, LBj, UBj, 1, N(ng),                  &
      &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
      &			 kdpar)
-# endif   
-#endif
+#  endif
+#  ifdef CACO3
+      call mp_exchange3d(ng, tile, iNLM, 1,                             &
+     &			 LBi, UBi, LBj, UBj, 1, N(ng),                  &
+     &			 NghostPoints, EWperiodic(ng), NSperiodic(ng),  &
+     &			 omega_arag)
+#  endif
+#endif   
       RETURN
       
     END SUBROUTINE biology_tile

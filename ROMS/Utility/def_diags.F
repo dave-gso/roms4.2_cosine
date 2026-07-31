@@ -773,10 +773,10 @@
             got_var(idtime)=.TRUE.
             DIA(ng)%Vid(idtime)=var_id(i)
           END IF
-!          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idFsur))) THEN
-!            got_var(idFsur)=.TRUE.
-!            DIA(ng)%Vid(idFsur)=var_id(i)
-!          END IF
+          IF (TRIM(var_name(i)).eq.TRIM(Vname(1,idFsur))) THEN
+            got_var(idFsur)=.TRUE.
+            DIA(ng)%Vid(idFsur)=var_id(i)
+          END IF
 # ifdef DIAGNOSTICS_UV
           DO ivar=1,NDM2d
             IF (TRIM(var_name(i)).eq.                                   &

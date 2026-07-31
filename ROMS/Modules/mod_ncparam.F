@@ -222,6 +222,7 @@
       integer  :: idIncr        ! 4D-Var analysis increment
       integer  :: idInno        ! 4D-Var innovation vector
       integer  :: idkdPAR       ! light attenuation coefficient (UMAINE15)
+      integer  :: idomeg        ! aragonite saturation state (UMAINE15)
       integer  :: idKhor        ! convolution horizontal diffusion
       integer  :: idKver        ! convolution vertical diffusion
       integer  :: idLatP        ! latitude of PSI-points

@@ -81,6 +81,12 @@
               CASE('idTvar(iRsed)')
                 idTvar(iRsed)=varid
 #endif
+#ifdef CACO3
+              CASE('idTvar(iCaCO)')
+                idTvar(iCaCO)=varid
+		  CASE('idomeg')
+		    idomeg=varid
+#endif
 
 #if defined AD_SENSITIVITY   || defined IS4DVAR_SENSITIVITY || \
     defined OPT_OBSERVATIONS || defined SENSITIVITY_4DVAR   || \
@@ -313,6 +319,16 @@
               CASE ('idTbry(inorth,iRsed)')
                 idTbry(inorth,iRsed)=varid
 #endif
+#ifdef CACO3
+		  CASE ('idTbry(iwest,iCaCO)')
+                idTbry(iwest,iCaCO)=varid
+		  CASE ('idTbry(ieast,iCaCO)')
+                idTbry(ieast,iCaCO)=varid
+              CASE ('idTbry(isouth,iCaCO)')
+                idTbry(isouth,iCaCO)=varid
+              CASE ('idTbry(inorth,iCaCO)')
+                idTbry(inorth,iCaCO)=varid
+#endif
 !
 !  Biological tracers point Source/Sinks (river runoff).
 !
@@ -360,6 +376,10 @@
 #ifdef RIVER_SEDIMENT
               CASE ('idRtrc(iRsed)')
                 idRtrc(iRsed)=varid
+#endif 
+#ifdef CACO3
+              CASE ('idRtrc(iCaCO)')
+                idRtrc(iCaCO)=varid
 #endif                
 #ifdef DIAGNOSTICS_BIO
 # ifdef SEDBIO
@@ -375,6 +395,12 @@
                 iDbio2(ibPONfx)=varid
               CASE ('iDbio2(ibPSifx)')
                 iDbio2(ibPSifx)=varid
+              CASE ('iDbio2(ibDenit)')
+                iDbio2(ibDenit)=varid
+#  ifdef CACO3
+              CASE ('iDbio2(ibPCafx)')
+                iDbio2(ibPCafx)=varid
+#  endif
 #  ifdef CARBON
               CASE ('iDbio2(ibTICfx)')
                 iDbio2(ibTICfx)=varid
@@ -429,6 +455,10 @@
                 idbPM(ibPOP)=varid
             CASE ('idbPM(ibPSi)')
                 idbPM(ibPSi)=varid
+# ifdef CACO3
+            CASE ('idbPM(ibPCa)')
+                idbPM(ibPCa)=varid
+# endif
         ! Pore water concentration variables
             CASE ('idbPW(ibNO3)')
                 idbPW(ibNO3)=varid
@@ -451,6 +481,10 @@
                 idbDR(ibUP)=varid
             CASE ('idbDR(ibUS)')
                 idbDR(ibUS)=varid
+# ifdef CACO3
+            CASE ('idbDR(ibUCa)')
+                idbDR(ibUCa)=varid
+# endif
         ! Benthic fluxes
             CASE ('idbSF(ibJNO3)')
                 idbSF(ibJNO3)=varid

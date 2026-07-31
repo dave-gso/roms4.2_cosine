@@ -26,6 +26,22 @@
      &                      gmaxs2(ng), (/0/), (/0/),                   &
      &                      pioFile = pioFile)
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+#ifdef CACO3
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'cacopf',                &
+     &                      cacopf(ng), (/0/), (/0/),                   &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'cacodr',                &
+     &                      cacodr(ng), (/0/), (/0/),                   &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'omega_thresh',      &
+     &                      omega_thresh(ng), (/0/), (/0/),             &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN      
+#endif
 #ifdef PHYTO_RESP
 	CALL pio_netcdf_put_fvar (ng, model, ncname, 'rrb1',                  &
      &                      rrb1(ng), (/0/), (/0/),                     &
@@ -226,7 +242,13 @@
       IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
       
 #endif
-
+#ifdef CACO3
+      CALL pio_netcdf_put_fvar (ng, model, ncname, 'wsPCa',                &
+     &                      wsPCa(ng), (/0/), (/0/),                   &
+     &                      pioFile = pioFile)
+      IF (FoundError(exit_flag, NoError, __LINE__, MyFile)) RETURN
+      
+#endif
       CALL pio_netcdf_put_fvar (ng, model, ncname, 'pco2a',                 &
      &                      pco2a(ng), (/0/), (/0/),                    &
      &                      pioFile = pioFile)

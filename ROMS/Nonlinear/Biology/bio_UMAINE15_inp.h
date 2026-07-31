@@ -153,6 +153,16 @@
 	    CASE('wsrsed') 
             Npts=load_r(Nval, Rval, Ngrids, wsrsed)
 #endif
+#ifdef CACO3
+          CASE('cacopf')
+		Npts=load_r(Nval, Rval, Ngrids, cacopf)
+	    CASE('cacodr')
+		Npts=load_r(Nval, Rval, Ngrids, cacodr)
+	    CASE('omega_thresh')
+		Npts=load_r(Nval, Rval, Ngrids, omega_thresh)
+	    CASE('wsPCa') 
+            Npts=load_r(Nval, Rval, Ngrids, wsPCa)
+#endif
           CASE('pco2a') 
             Npts=load_r(Nval, Rval, Ngrids, pco2a)
           CASE('si2n') 
@@ -521,6 +531,15 @@
               END IF
               Npts=load_l(Nval, Cval, Ngrids, Hout(idkdPAR,:))
 #endif
+#ifdef CACO3
+            CASE ('Hout(idomeg)')
+              IF (idomeg.eq.0) THEN
+                IF (Master) WRITE (out,30) 'idomeg'
+                exit_flag=5
+                RETURN
+              END IF
+              Npts=load_l(Nval, Cval, Ngrids, Hout(idomeg,:))
+#endif
 ! AKB 6/22/23
 #ifdef CARBON
             CASE ('Hout(idfgCO2)')
@@ -746,6 +765,17 @@
               DO ng=1,Ngrids
                 Dout(i,ng)=Lbio(ng)
               END DO
+		CASE ('Dout(ibDenit)')
+              IF (iDbio2(ibDenit).eq.0) THEN
+                IF (Master) WRITE (out,40) 'iDbio2(ibDenit)'
+                exit_flag=5
+                RETURN
+              END IF
+              Npts=load_l(Nval, Cval, Ngrids, Lbio)
+              i=iDbio2(ibDenit)
+              DO ng=1,Ngrids
+                Dout(i,ng)=Lbio(ng)
+              END DO
 #  ifdef CARBON
             CASE ('Dout(ibTICfx)')
               IF (iDbio2(ibTICfx).eq.0) THEN
@@ -766,6 +796,19 @@
               END IF
               Npts=load_l(Nval, Cval, Ngrids, Lbio)
               i=iDbio2(ibAlkfx)
+              DO ng=1,Ngrids
+                Dout(i,ng)=Lbio(ng)
+              END DO
+#  endif
+#  ifdef CACO3
+            CASE ('Dout(ibPCafx)')
+              IF (iDbio2(ibPCafx).eq.0) THEN
+                IF (Master) WRITE (out,40) 'iDbio2(ibPCafx)'
+                exit_flag=5
+                RETURN
+              END IF
+              Npts=load_l(Nval, Cval, Ngrids, Lbio)
+              i=iDbio2(ibPCafx)
               DO ng=1,Ngrids
                 Dout(i,ng)=Lbio(ng)
               END DO
@@ -952,6 +995,14 @@
      &            '[1/day].'
             WRITE (out,100) gmaxs2(ng), 'gmaxs2',                      &
      &            'Maximum specific growth rate of diatom [1/day].'
+#ifdef CACO3
+            WRITE (out,100) cacopf(ng), 'cacopf',                        &
+     &       'CaCO3 production rate as fraction of net PP [dimensionless].'
+            WRITE (out,100) cacodr(ng), 'cacodr',                        &
+     &       'CaCO3 dissolution rate [1/day].'
+            WRITE (out,100) omega_thresh(ng), 'omega_thresh',            &
+     &       'threshold saturation state for CaCO3 dissolution [dimensionless].'
+#endif
 #ifdef PHYTO_RESP
             WRITE (out,100) rrb1(ng), 'rrb1',                          &
      &            'basal respiration rate of small phyto. [1/day].'
@@ -1057,6 +1108,10 @@
 #ifdef RIVER_SEDIMENT
             WRITE (out,100) wsrsed(ng), 'wsrsed',                      &
      &            'Sinking velocity of non-biogenic river sediment [m/day].'
+#endif
+#ifdef CACO3
+            WRITE (out,100) wsPCa(ng), 'wsPCa',                        &
+     &            'Sinking velocity of biogenic CaCO3 [m/day].'
 #endif
             WRITE (out,100) pco2a(ng), 'pco2a',                        &
      &            'Air pCO2 [ppmv].'
@@ -1257,6 +1312,11 @@
             IF (Hout(idkdPAR,ng)) WRITE (out,65) Hout(idkdPAR,ng),         &
      &       'Hout(idkdPAR)',                                            &
      &       'Write out light attenuation coefficient ',TRIM(Vname(1,idkdPAR))
+#endif
+#ifdef CACO3
+            IF (Hout(idomeg,ng)) WRITE (out,65) Hout(idomeg,ng),         &
+     &       'Hout(idomeg)',                                            &
+     &       'Write out aragonite saturation state ',TRIM(Vname(1,idomeg))
 #endif
 ! AKB 6/22/23
 #ifdef CARBON

@@ -84,6 +84,15 @@
                     bUmaxSi(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
+#ifdef CACO3
+          CASE('bUmaxCa')
+		Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
+		DO ng=1,Ngrids
+                DO itrc=1,nspc
+                    bUmaxCa(ng,itrc)=Rbio(itrc,ng)
+                END DO
+            END DO
+#endif
           CASE('bdep')
             Npts=load_r(Nval, Rval, Ngrids, bdep)
           CASE('balpha')
@@ -142,6 +151,15 @@
                     bfs(ng,itrc)=Rbio(itrc,ng)
                 END DO
             END DO
+#ifdef CACO3
+	    CASE('bfca')
+            Npts=load_r(Nval, Rval, nspc, Ngrids, Rbio)
+            DO ng=1,Ngrids
+                DO itrc=1,nspc
+                    bfca(ng,itrc)=Rbio(itrc,ng)
+                END DO
+            END DO
+#endif
           CASE ('Hout(idbPM)')
             Npts=load_l(Nval, Cval, NSF, Ngrids, Ltrc)
             DO ng=1,Ngrids
@@ -224,6 +242,12 @@
      &              'Maximum particulate silicate decay rate',         &
      &              'for POM class [1/day] '
             ENDDO
+#ifdef CACO3
+            DO itrc=1,nspc
+              WRITE (out,90) bUmaxCa(ng,itrc), 'bUmaxCa', itrc,        &
+     &            'Particulate CaCO3 decay rate for POM class (1/day).'
+            ENDDO
+#endif
             WRITE (out,100) bdep(ng), 'bdep',                          &
      &            'Thickness of benthic sediment layer (m).'
             WRITE (out,110) balpha(ng), 'balpha',                      &
@@ -288,6 +312,13 @@
 &              'Particulate silicon partitioning coefficient',         &
 &              '[nondimensional]'
             ENDDO
+#ifdef CACO3
+            DO itrc=1,nspc
+              WRITE (out,90) bfca(ng,itrc), 'bfca', itrc,                   &
+&              'Particulate CaCO3 partitioning coefficient',         &
+&              '[nondimensional]'
+            ENDDO
+#endif
 
           END IF
         END DO

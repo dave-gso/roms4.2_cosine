@@ -44,6 +44,10 @@
 #if (defined BIO_UMAINE15 && defined OPTICS_OP1)
 !  attenuation of light
 !   kdpar       attenuation coefficient for PAR (m^-1)
+#endif
+#if (defined BIO_UMAINE15 && defined CACO3)
+!  aragonite saturation state
+!   omega_arag       aragonite saturation state (nondimensional)
 #endif                                                                     !
 # if (defined BIO_FENNEL && defined CARBON) || defined ECB
 !  pH           Surface concentration of hydrogen ions.                !
@@ -144,6 +148,9 @@
 # endif
 # if (defined BIO_UMAINE15 && defined OPTICS_OP1)
           real(r8), pointer :: kdpar(:,:,:)
+# endif
+# if (defined BIO_UMAINE15 && defined CACO3)
+          real(r8), pointer :: omega_arag(:,:,:)
 # endif
 # if (defined BIO_UMAINE15 && defined CARBON)
           real(r8), pointer :: fgCO2(:,:)
@@ -536,7 +543,9 @@
 # if (defined BIO_UMAINE15 && defined OPTICS_OP1)
       allocate ( OCEAN(ng) % kdpar(LBi:UBi,LBj:UBj,N(ng)) )
 # endif
-
+# if (defined BIO_UMAINE15 && defined CACO3)
+      allocate ( OCEAN(ng) % omega_arag(LBi:UBi,LBj:UBj,N(ng)) )
+# endif
 # ifdef RED_TIDE
 !
       allocate ( OCEAN(ng) % CystIni(LBi:UBi,LBj:UBj) )
@@ -1149,6 +1158,10 @@
       IF (.not.destroy(ng, OCEAN(ng)%kdpar, MyFile,                        &
      &                 __LINE__, 'OCEAN(ng)%kdpar')) RETURN
 #  endif
+#  if (defined BIO_UMAINE15 && defined CACO3)
+      IF (.not.destroy(ng, OCEAN(ng)%omega_arag, MyFile,                   &
+     &                 __LINE__, 'OCEAN(ng)%omega_arag')) RETURN
+#  endif
 #  ifdef RED_TIDE
       IF (.not.destroy(ng, OCEAN(ng)%CystIni, MyFile,                   &
      &                 __LINE__, 'OCEAN(ng)%CystIni')) RETURN
@@ -1734,6 +1747,9 @@
 # endif
 # if (defined BIO_UMAINE15 && defined OPTICS_OP1)
               OCEAN(ng) % kdpar(i,j,k) = kdIniVal
+# endif
+# if (defined BIO_UMAINE15 && defined CACO3)
+              OCEAN(ng) % omega_arag(i,j,k) = IniVal
 # endif
 # ifdef HYPOXIA_SRM
               OCEAN(ng) % respiration(i,j,k) = IniVal
